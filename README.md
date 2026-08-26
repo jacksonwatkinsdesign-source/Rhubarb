@@ -33,8 +33,8 @@ passport at a time, and you go last.
 
 A quarter of the way into the cruise the attendant offers you one. Say yes and
 she brings it at the halfway mark; three-quarters through she comes back for
-the empties. Whatever you are holding sits on the window ledge, so the cups
-visibly accumulate and visibly go away.
+the empties. Your coffee sits on the tray table in the foreground with the steam curling
+up across the glass, and it visibly goes away when she collects it.
 
 One playthrough is roughly 8–12 minutes.
 

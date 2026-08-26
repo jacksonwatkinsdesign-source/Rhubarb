@@ -625,24 +625,69 @@
 
   // A cup at rest with steam curling off it. Three wisps on different
   // phases, drifting up and sideways and fading as they rise.
-  // x,y is where the cup STANDS — its base — so callers position it on the
-  // ledge rather than guessing at a top-left corner.
-  RB.sillCup = function (x, y, t) {
-    var h = RB.sprites.bigcup.length;
-    RB.drawSprite(RB.sprites.bigcup, x, y - h, RB.cupPal);
-    // Steam scaled to match: taller, wider, slower.
-    for (var i = 0; i < 4; i++) {
-      var k = ((t * 0.34 + i * 0.25) % 1);
-      var sy = y - h - 2 - k * 26;
-      var sx = x + 5 + Math.sin(t * 1.2 + i * 1.9 + k * 3.4) * 4.5;
-      var fade = (1 - k) * (1 - k);
-      RB.ctx.globalAlpha = fade * 0.70;
-      RB.rect(sx, sy, 2, 4, P.white);
-      RB.ctx.globalAlpha = fade * 0.40;
-      RB.rect(sx - 1, sy + 1, 1, 3, P.white);
-      RB.rect(sx + 2, sy + 2, 1, 2, P.white);
-      RB.ctx.globalAlpha = 1;
+  // A tray table pulled down in the foreground with a coffee on it, and the
+  // steam curling up across the whole window. Drawn in screen space, over the
+  // window frame, because it is inside the cabin with you.
+  //
+  // Ribbons rather than dots: each one is a chain of pixels whose x follows a
+  // sine that widens as it rises, which is what makes steam read as steam.
+  function steamRibbon(baseX, baseY, t, phase, height) {
+    for (var i = 0; i < height; i++) {
+      var f = i / height;
+      // Two sines of different rates, both widening as the ribbon rises, so
+      // it wanders instead of oscillating on a fixed period.
+      var swing = 2.0 + f * 15;
+      var x = baseX
+            + Math.sin(f * 3.1 + t * 0.75 + phase) * swing
+            + Math.sin(f * 6.7 + t * 0.42 + phase * 1.7) * (swing * 0.35);
+      var a = (1 - f * f) * 0.62 * (0.55 + 0.45 * Math.sin(t * 1.5 + phase + f * 5.0));
+      if (a <= 0.02) continue;
+      RB.ctx.globalAlpha = a;
+      RB.rect(Math.round(x), baseY - i, 1, 1, P.white);
+      // Thicker low down where the steam is dense, wispy at the top.
+      if (f < 0.55) RB.rect(Math.round(x) + 1, baseY - i, 1, 1, P.white);
+      if (f < 0.22) RB.rect(Math.round(x) - 1, baseY - i, 1, 1, P.white);
     }
+    RB.ctx.globalAlpha = 1;
+  }
+
+  RB.trayCoffee = function (t, warm) {
+    var TOPY = 107, FRONTY = 119;
+    var bx0 = 150, bx1 = 206;          // back edge, further away, narrower
+    var fx0 = 143, fx1 = 213;          // front edge, nearer, wider
+    var surf = RB.mix('#6b6474', '#f4d08a', warm * 0.18);
+    var lip = RB.mix('#8d8698', '#f4d08a', warm * 0.22);
+    var dark = RB.mix('#443f4e', '#f4d08a', warm * 0.10);
+
+    // Surface, drawn row by row so it tapers with perspective.
+    for (var y = TOPY; y <= FRONTY; y++) {
+      var k = (y - TOPY) / (FRONTY - TOPY);
+      var l = bx0 + (fx0 - bx0) * k;
+      var r = bx1 + (fx1 - bx1) * k;
+      RB.rect(l, y, r - l, 1, RB.mix(surf, dark, k * 0.38));
+    }
+    RB.rect(bx0, TOPY, bx1 - bx0, 1, lip);
+    RB.rect(fx0, FRONTY, fx1 - fx0, 2, lip);
+    RB.rect(fx0, FRONTY + 2, fx1 - fx0, 3, dark);
+
+    // The two arms it hangs on, running off the bottom of the frame.
+    [151, 203].forEach(function (ax) {
+      RB.rect(ax, FRONTY + 4, 6, RB.H - FRONTY, RB.mix('#5a5464', '#f4d08a', warm * 0.12));
+      RB.rect(ax, FRONTY + 4, 2, RB.H - FRONTY, RB.mix('#736c80', '#f4d08a', warm * 0.14));
+    });
+
+    // The cup, standing on it.
+    var h = RB.sprites.bigcup.length;
+    var cupX = 168, cupBase = 113;
+    RB.ctx.globalAlpha = 0.22;
+    RB.rect(cupX + 1, cupBase - 1, 13, 2, '#0b0d14');
+    RB.ctx.globalAlpha = 1;
+    RB.drawSprite(RB.sprites.bigcup, cupX + RB.cam.x, cupBase - h, RB.cupPal);
+
+    // Steam, all the way up the glass.
+    steamRibbon(cupX + 4, cupBase - h - 2, t, 0.0, 78);
+    steamRibbon(cupX + 9, cupBase - h - 4, t, 2.1, 66);
+    steamRibbon(cupX + 6, cupBase - h - 1, t, 4.3, 92);
   };
 
   RB.now = 0;

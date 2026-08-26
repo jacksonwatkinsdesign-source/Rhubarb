@@ -335,11 +335,7 @@
       drawWindowFrame(wx, wy, ww, wh);
       drawCabinSurround(wx, wy, ww, wh);
 
-      // Anything you carried aboard sits on the ledge, steaming.
-      var cups = RB.state.cupsHeld || 0;
-      for (var c = 0; c < cups; c++) {
-        RB.sillCup(wx + 10 + c * 21, wy + wh + 13, s.t + c * 1.7);
-      }
+      if ((RB.state.cupsHeld || 0) > 0) RB.trayCoffee(s.t, 0);
     };
 
     function drawOutside(wx, wy, ww, wh) {
@@ -763,21 +759,10 @@
 
       // Whatever you are holding sits on the ledge, and visibly goes away
       // when she collects it.
-      var cups = RB.state.cupsHeld || 0;
-      for (var c = 0; c < cups; c++) {
-        RB.sillCup(wx + 10 + c * 21, wy + wh + 13, s.t + c * 1.7);
-      }
-
-      // The attendant, leaning into your view from the aisle. Drawn after the
-      // frame so she overlaps its edge rather than sitting behind it.
-      if (att.x > -20) {
-        RB.drawSprite(RB.sprites.side[0], att.x, 74, RB.cast.crew, false,
-                      sunC, 0.14 * k.t);
-        if (att.tray) {
-          RB.rect(att.x + 13, 84, 12, 2, '#8a8f9c');
-          RB.drawSprite(RB.sprites.cup, att.x + 15, 76, RB.cast.you);
-        }
-      }
+      // Your coffee on the tray table. The attendant is not drawn in frame —
+      // she is beside you in the aisle, which the dimmed window and the
+      // dialogue carry without crowding the composition.
+      if ((RB.state.cupsHeld || 0) > 0) RB.trayCoffee(s.t, k.t);
 
       if (endFade.v > 0.001) {
         RB.ctx.globalAlpha = RB.clamp(endFade.v, 0, 1);
