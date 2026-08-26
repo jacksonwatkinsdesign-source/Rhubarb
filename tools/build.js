@@ -13,17 +13,31 @@ const js = ORDER
   .map(f => `/* ==== ${f} ==== */\n` + fs.readFileSync(path.join(ROOT, 'src', f), 'utf8'))
   .join('\n');
 
-const html = `<title>Rhubarb — a short flight</title>
+const html = `<title>Rhubarb</title>
 <style>
-  html, body { margin:0; padding:0; height:100%; background:#05070d; overflow:hidden;
-               touch-action:none; overscroll-behavior:none; }
-  canvas { display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
-  #hint { position:fixed; left:0; right:0; bottom:10px; text-align:center;
-          font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:#5a6478;
-          letter-spacing:.06em; pointer-events:none; transition:opacity .8s; }
+  /* The page is a single game screen, so it commits to one visual world
+     rather than following the viewer's theme — but every colour is painted
+     explicitly so it holds on either host ground. The ground and the chrome
+     are taken from the game's own palette. */
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #05070d; color: #8a9bb8;
+    overflow: hidden; touch-action: none; overscroll-behavior: none;
+  }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: 14px;
+    text-align: center;
+    font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: #4e5a72; background: none;
+    pointer-events: none; transition: opacity 1.2s ease;
+  }
+  #hint b { color: #8a7350; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) { #hint { transition: none; } }
 </style>
 <canvas id="screen"></canvas>
-<div id="hint">click, then press Z &nbsp;·&nbsp; arrows or WASD to walk &nbsp;·&nbsp; shift to slow down</div>
+<div id="hint">click, then press <b>Z</b> &nbsp;·&nbsp; arrows or WASD to walk &nbsp;·&nbsp; hold shift to slow down</div>
 <script>
 ${js}
 RB.boot(document.getElementById('screen'));
