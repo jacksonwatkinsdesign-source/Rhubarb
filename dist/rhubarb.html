@@ -84,16 +84,19 @@
     window.addEventListener('resize', resize);
   };
 
+  RB.uiInset = 0;          // px reserved at the bottom for touch controls
+
   function resize() {
     var vw = window.innerWidth, vh = window.innerHeight;
     screen.width = vw;
     screen.height = vh;
+    var avail = Math.max(80, vh - RB.uiInset);
     // Integer scale only — a fractional scale on a 240x160 buffer produces
     // uneven pixel sizes, which is the single most common way a pixel game
     // gives itself away as not really being one.
-    scale = Math.max(1, Math.floor(Math.min(vw / RB.W, vh / RB.H)));
+    scale = Math.max(1, Math.floor(Math.min(vw / RB.W, avail / RB.H)));
     offX = Math.floor((vw - RB.W * scale) / 2);
-    offY = Math.floor((vh - RB.H * scale) / 2);
+    offY = Math.floor((avail - RB.H * scale) / 2);
     sctx.imageSmoothingEnabled = false;
   }
   RB.resize = resize;
@@ -178,7 +181,7 @@
   };
 
   // ------------------------------------------------------------------ input
-  var keys = {}, prev = {};
+  var keyState = {}, touchState = {}, prev = {};
   var MAP = {
     ArrowLeft: 'left', KeyA: 'left',
     ArrowRight: 'right', KeyD: 'right',
@@ -189,9 +192,19 @@
     ShiftLeft: 'slow', ShiftRight: 'slow'
   };
 
+  var ACTIONS = ['left', 'right', 'up', 'down', 'action', 'cancel', 'slow'];
+
   RB.input = {
     left: false, right: false, up: false, down: false,
     action: false, cancel: false, slow: false,
+    // Merge the two input sources. Called once per frame by the main loop —
+    // deliberately not by the test harnesses, which drive RB.input directly.
+    sync: function () {
+      for (var i = 0; i < ACTIONS.length; i++) {
+        var n = ACTIONS[i];
+        this[n] = !!(keyState[n] || touchState[n]);
+      }
+    },
     pressed: function (n) { return this[n] && !prev[n]; },
     anyPressed: function () {
       return this.pressed('action') || this.pressed('cancel') ||
@@ -199,42 +212,26 @@
              this.pressed('up') || this.pressed('down');
     },
     latch: function () {
-      for (var k in MAP) prev[MAP[k]] = this[MAP[k]];
+      for (var i = 0; i < ACTIONS.length; i++) prev[ACTIONS[i]] = this[ACTIONS[i]];
     }
   };
 
+  RB.setTouch = function (name, on) { touchState[name] = !!on; };
+  RB.clearTouch = function () { touchState = {}; };
+
   window.addEventListener('keydown', function (e) {
     var a = MAP[e.code];
-    if (a) { keys[a] = true; RB.input[a] = true; e.preventDefault(); }
+    if (a) { keyState[a] = true; RB.input[a] = true; e.preventDefault(); }
     if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
   });
   window.addEventListener('keyup', function (e) {
     var a = MAP[e.code];
-    if (a) { keys[a] = false; RB.input[a] = false; e.preventDefault(); }
+    if (a) { keyState[a] = false; RB.input[a] = false; e.preventDefault(); }
   });
   window.addEventListener('blur', function () {
-    for (var k in keys) { keys[k] = false; RB.input[k] = false; }
+    keyState = {}; touchState = {};
+    for (var i = 0; i < ACTIONS.length; i++) RB.input[ACTIONS[i]] = false;
   });
-
-  // Touch: left half = walk toward tap, right half = action. Enough to play
-  // it on a phone without building a whole virtual pad.
-  RB.bindTouch = function (el) {
-    function set(on, e) {
-      if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
-      var t = e.changedTouches ? e.changedTouches[0] : e;
-      var r = el.getBoundingClientRect();
-      var nx = (t.clientX - r.left) / r.width, ny = (t.clientY - r.top) / r.height;
-      RB.input.left = RB.input.right = RB.input.up = RB.input.down = RB.input.action = false;
-      if (!on) return;
-      if (nx > 0.72) { RB.input.action = true; return; }
-      var dx = nx - 0.5, dy = ny - 0.5;
-      if (Math.abs(dx) > 0.06) RB.input[dx < 0 ? 'left' : 'right'] = true;
-      if (Math.abs(dy) > 0.06) RB.input[dy < 0 ? 'up' : 'down'] = true;
-    }
-    el.addEventListener('touchstart', function (e) { set(true, e); e.preventDefault(); }, { passive: false });
-    el.addEventListener('touchmove', function (e) { set(true, e); e.preventDefault(); }, { passive: false });
-    el.addEventListener('touchend', function (e) { set(false, e); e.preventDefault(); }, { passive: false });
-  };
 
   // ----------------------------------------------------------------- camera
   RB.cam = { x: 0, y: 0 };
@@ -516,321 +513,415 @@
   RB.font = { draw: draw, drawCentered: drawCentered, width: width, wrap: wrap, H: CH };
 })(window.RB = window.RB || {});
 
-/* ==== sprites.js ==== */
-// sprites.js — one 12x18 body template, palette-swapped per character.
-// Keys: . transparent  t outline  h hair  k skin  e eye
-//       s shirt  S shirt-shade  p pants  P pants-shade  o shoe  b bag
+/* ==== touch.js ==== */
+// touch.js — on-screen d-pad and button for touch devices.
+//
+// Built as DOM over the canvas rather than drawn into the 240x160 buffer, so
+// the controls stay finger-sized regardless of how far the game is scaled up.
+// Every active touch is hit-tested against the controls each event, which is
+// what makes "hold a direction and tap the button" work, and lets a thumb
+// slide around the pad without lifting.
 (function (RB) {
   'use strict';
 
-  var DOWN = {
-    0: [ // contact / idle
-      '....tttt....',
-      '...thhhht...',
-      '..thhhhhht..',
-      '..hhkkkkhh..',
-      '..thkkkkht..',
-      '..tkekkekt..',
-      '..tkkkkkkt..',
-      '...tkkkkt...',
-      '..tssssSst..',
-      '.tksssssSkt.',
-      '.tksssssSkt.',
-      '..tsssssSt..',
-      '..tpppPppt..',
-      '..tpppPppt..',
-      '..tpp.Ppt...',
-      '..tpp.Ppt...',
-      '..too.oot...',
-      '..ttt.ttt...'
-    ],
-    1: [ // step A — left leg forward
-      '....tttt....',
-      '...thhhht...',
-      '..thhhhhht..',
-      '..hhkkkkhh..',
-      '..thkkkkht..',
-      '..tkekkekt..',
-      '..tkkkkkkt..',
-      '...tkkkkt...',
-      '..tssssSst..',
-      'tkssssssSt..',
-      '.tsssssSkt..',
-      '..tsssssSt..',
-      '..tpppPppt..',
-      '.tppppPppt..',
-      '.tpp..Ppt...',
-      '.tpp...Pt...',
-      '.too...ot...',
-      '.ttt...tt...'
-    ],
-    2: [ // step B — right leg forward
-      '....tttt....',
-      '...thhhht...',
-      '..thhhhhht..',
-      '..hhkkkkhh..',
-      '..thkkkkht..',
-      '..tkekkekt..',
-      '..tkkkkkkt..',
-      '...tkkkkt...',
-      '..tssssSst..',
-      '..tssssssSkt',
-      '..tksssssSt.',
-      '..tsssssSt..',
-      '..tpppPppt..',
-      '..tpppPPppt.',
-      '...tpP..ppt.',
-      '...tP...ppt.',
-      '...to...oot.',
-      '...tt...ttt.'
-    ]
+  var root = null, pad = null, btn = null, mounted = false;
+  var touches = Object.create(null);
+
+  // dx/dy octant -> directions. Index 0 is due right, going clockwise.
+  var OCT = [
+    ['right'], ['right', 'down'], ['down'], ['left', 'down'],
+    ['left'], ['left', 'up'], ['up'], ['right', 'up']
+  ];
+
+  var CSS = [
+    '#rb-touch,#rb-touch *{box-sizing:border-box;}',
+    '#rb-touch{position:fixed;left:0;right:0;bottom:0;z-index:10;',
+    '  display:none;align-items:center;justify-content:space-between;',
+    '  padding:0 max(18px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-bottom))',
+    '          max(18px,env(safe-area-inset-right));',
+    '  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;}',
+    '#rb-touch.on{display:flex;}',
+    '#rb-pad{position:relative;width:var(--pad);height:var(--pad);flex:none;}',
+    '#rb-pad .arm{position:absolute;background:#232a3c;border:2px solid #3d4760;',
+    '  box-shadow:0 2px 0 #10141f;}',
+    '#rb-pad .up{left:34%;top:0;width:32%;height:38%;border-radius:8px 8px 0 0;border-bottom:none;}',
+    '#rb-pad .dn{left:34%;bottom:0;width:32%;height:38%;border-radius:0 0 8px 8px;border-top:none;}',
+    '#rb-pad .lf{top:34%;left:0;height:32%;width:38%;border-radius:8px 0 0 8px;border-right:none;}',
+    '#rb-pad .rt{top:34%;right:0;height:32%;width:38%;border-radius:0 8px 8px 0;border-left:none;}',
+    '#rb-pad .hub{left:30%;top:30%;width:40%;height:40%;border:2px solid #3d4760;}',
+    '#rb-pad .arm.hit{background:#3f6ea8;border-color:#5f93d0;}',
+    '#rb-btn{position:relative;width:var(--btn);height:var(--btn);flex:none;border-radius:50%;',
+    '  background:#232a3c;border:3px solid #6b5a34;box-shadow:0 3px 0 #10141f;',
+    '  display:flex;align-items:center;justify-content:center;',
+    '  font:600 calc(var(--btn)*0.34)/1 ui-monospace,SFMono-Regular,Menlo,monospace;',
+    '  color:#e8a054;letter-spacing:.04em;}',
+    '#rb-btn.hit{background:#4a3a1e;border-color:#e8a054;color:#f4d8a8;transform:translateY(2px);',
+    '  box-shadow:0 1px 0 #10141f;}',
+    '@media (prefers-reduced-motion:reduce){#rb-btn{transition:none;}}'
+  ].join('\n');
+
+  function sizes() {
+    // Pad and button scale with the short edge, clamped so they stay usable on
+    // a phone and don't become absurd on a 13" tablet.
+    var short = Math.min(window.innerWidth, window.innerHeight);
+    var padPx = Math.round(Math.max(112, Math.min(168, short * 0.28)));
+    var btnPx = Math.round(Math.max(74, Math.min(118, short * 0.18)));
+    return { pad: padPx, btn: btnPx };
+  }
+
+  function layout() {
+    if (!mounted) return;
+    var s = sizes();
+    root.style.setProperty('--pad', s.pad + 'px');
+    root.style.setProperty('--btn', s.btn + 'px');
+    // Reserve the strip the controls occupy so the game letterboxes above them
+    // instead of hiding behind a thumb.
+    RB.uiInset = s.pad + 24;
+    RB.resize();
+  }
+
+  function build() {
+    var style = document.createElement('style');
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
+    root = document.createElement('div');
+    root.id = 'rb-touch';
+    root.innerHTML =
+      '<div id="rb-pad">' +
+        '<div class="arm up" data-dir="up"></div>' +
+        '<div class="arm lf" data-dir="left"></div>' +
+        '<div class="arm rt" data-dir="right"></div>' +
+        '<div class="arm dn" data-dir="down"></div>' +
+        '<div class="arm hub"></div>' +
+      '</div>' +
+      '<div id="rb-btn">Z</div>';
+    document.body.appendChild(root);
+
+    pad = root.querySelector('#rb-pad');
+    btn = root.querySelector('#rb-btn');
+    mounted = true;
+  }
+
+  function paint(dirs, action) {
+    var arms = pad.querySelectorAll('.arm[data-dir]');
+    for (var i = 0; i < arms.length; i++) {
+      arms[i].classList.toggle('hit', dirs.indexOf(arms[i].getAttribute('data-dir')) >= 0);
+    }
+    btn.classList.toggle('hit', action);
+  }
+
+  // Recompute the whole control state from every touch currently down.
+  function apply() {
+    var dirs = [], action = false;
+    var pr = pad.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    var pcx = pr.left + pr.width / 2, pcy = pr.top + pr.height / 2;
+    var bcx = br.left + br.width / 2, bcy = br.top + br.height / 2;
+
+    for (var id in touches) {
+      var t = touches[id];
+      // Button first, with a generous radius — a near miss should still fire.
+      var bdx = t.x - bcx, bdy = t.y - bcy;
+      if (Math.sqrt(bdx * bdx + bdy * bdy) < br.width * 0.85) { action = true; continue; }
+
+      var dx = t.x - pcx, dy = t.y - pcy;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > pr.width * 0.95) continue;
+      if (dist < pr.width * 0.15) continue;              // dead zone at the hub
+      var oct = (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8;
+      var set = OCT[oct];
+      for (var j = 0; j < set.length; j++) {
+        if (dirs.indexOf(set[j]) < 0) dirs.push(set[j]);
+      }
+    }
+
+    RB.clearTouch();
+    for (var k = 0; k < dirs.length; k++) RB.setTouch(dirs[k], true);
+    if (action) RB.setTouch('action', true);
+    paint(dirs, action);
+  }
+
+  function track(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i];
+      if (e.type === 'touchend' || e.type === 'touchcancel') delete touches[t.identifier];
+      else touches[t.identifier] = { x: t.clientX, y: t.clientY };
+    }
+    apply();
+    if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
+  }
+
+  RB.mountTouchControls = function (force) {
+    var coarse = false;
+    try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
+    var touchCapable = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    if (!force && !coarse && !touchCapable) return false;
+
+    if (!mounted) build();
+    root.classList.add('on');
+    layout();
+
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function (ev) {
+      window.addEventListener(ev, function (e) {
+        track(e);
+        // Only swallow the gesture when it started on the controls, so the
+        // host page can still be scrolled from elsewhere.
+        if (e.target && root.contains(e.target)) e.preventDefault();
+      }, { passive: false });
+    });
+    window.addEventListener('resize', layout);
+    window.addEventListener('orientationchange', function () { setTimeout(layout, 150); });
+    return true;
   };
 
-  var UP = {
-    0: [
-      '....tttt....',
-      '...thhhht...',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '...thhhht...',
-      '..tssssSst..',
-      '.tksssssSkt.',
-      '.tksssssSkt.',
-      '..tsssssSt..',
-      '..tpppPppt..',
-      '..tpppPppt..',
-      '..tpp.Ppt...',
-      '..tpp.Ppt...',
-      '..too.oot...',
-      '..ttt.ttt...'
-    ],
-    1: [
-      '....tttt....',
-      '...thhhht...',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '...thhhht...',
-      '..tssssSst..',
-      'tkssssssSt..',
-      '.tsssssSkt..',
-      '..tsssssSt..',
-      '..tpppPppt..',
-      '.tppppPppt..',
-      '.tpp..Ppt...',
-      '.tpp...Pt...',
-      '.too...ot...',
-      '.ttt...tt...'
-    ],
-    2: [
-      '....tttt....',
-      '...thhhht...',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '..thhhhhht..',
-      '...thhhht...',
-      '..tssssSst..',
-      '..tssssssSkt',
-      '..tksssssSt.',
-      '..tsssssSt..',
-      '..tpppPppt..',
-      '..tpppPPppt.',
-      '...tpP..ppt.',
-      '...tP...ppt.',
-      '...to...oot.',
-      '...tt...ttt.'
-    ]
-  };
+  RB.touchControlsVisible = function () { return mounted && root.classList.contains('on'); };
+})(window.RB = window.RB || {});
 
+/* ==== sprites.js ==== */
+// sprites.js — 16x24 character sprites, three-tone shaded, palette-swapped.
+//
+// Scale and proportion are pitched at GBA-era Pokemon (big head, readable
+// face at 1x), with the heavier outline and higher-saturation shading of the
+// Battle Network overworld sprites.
+//
+// Keys: . transparent   t outline
+//       h hair   H hair highlight
+//       k skin   K skin shade
+//       e eye
+//       s jacket   S jacket shade   L jacket highlight
+//       w collar   c tie
+//       p trousers   P trouser shade
+//       o shoe   b bag   B bag highlight
+(function (RB) {
+  'use strict';
+
+  var W = 16, H = 24;
+
+  // ------------------------------------------------------------------ down
+  // Head is twelve rows of twenty-four. Any more and it tips from GBA-chibi
+  // into bobblehead; any less and the face stops reading at 1x.
+  var D0 = [
+    '.....tttttt.....',
+    '...tthhhhhhtt...',
+    '..thhhhhhhhhht..',
+    '.thhhHHHHHHhhht.',
+    '.thhhhhhhhhhhht.',
+    '.thhkkkkkkkkhht.',
+    '.thkkttkkttkkht.',
+    '.thkkeekkeekkht.',
+    '.tkkkkkkkkkkkkt.',
+    '.tKkkkkkkkkkkKt.',
+    '..tkkkkkkkkkkt..',
+    '...ttkkkkkktt...',
+    '..ttsswwwwsstt..',
+    '.tLssswccwsssLt.',
+    '.tLsssswccsssLt.',
+    '.tksssssccsssKt.',
+    '.tksssssccsssKt.',
+    '.tkssssssssssKt.',
+    '..tsssssssssst..',
+    '..tppppttppppt..',
+    '..tpppt..tpppt..',
+    '..tpppt..tpppt..',
+    '..tPPPt..tPPPt..',
+    '..tooot..tooot..'
+  ];
+  // Step frames differ only below the waist; at this size the legs carry the
+  // whole cycle and articulating the arms too just reads as noise.
+  var D1 = D0.slice(0, 19).concat([
+    '..tppppttppppt..',
+    '.tppppt..tpppt..',
+    '.tppppt...tppt..',
+    '.tPPPPt...tPPt..',
+    '.tooot....toot..'
+  ]);
+  var D2 = D0.slice(0, 19).concat([
+    '..tppppttppppt..',
+    '..tpppt..tppppt.',
+    '..tppt...tppppt.',
+    '..tPPt...tPPPPt.',
+    '..toot....tooot.'
+  ]);
+
+  // -------------------------------------------------------------------- up
+  var U0 = [
+    '.....tttttt.....',
+    '...tthhhhhhtt...',
+    '..thhhhhhhhhht..',
+    '.thhhHHHHHHhhht.',
+    '.thhhhhhhhhhhht.',
+    '.thhhhhhhhhhhht.',
+    '.thhhhhhhhhhhht.',
+    '.thhhhhhhhhhhht.',
+    '.thhhhhhhhhhhht.',
+    '.thhhhhhhhhhhht.',
+    '..thhhhhhhhhht..',
+    '...ttkkkkkktt...',
+    '..ttsssssssstt..',
+    '.tLssssssssssLt.',
+    '.tLssssssssssLt.',
+    '.tkssssssssssKt.',
+    '.tkssssssssssKt.',
+    '.tkssssssssssKt.',
+    '..tsssssssssst..',
+    '..tppppttppppt..',
+    '..tpppt..tpppt..',
+    '..tpppt..tpppt..',
+    '..tPPPt..tPPPt..',
+    '..tooot..tooot..'
+  ];
+  var U1 = U0.slice(0, 19).concat(D1.slice(19));
+  var U2 = U0.slice(0, 19).concat(D2.slice(19));
+
+  // ------------------------------------------------------------------ side
   // Facing right; mirrored at draw time for left.
-  var SIDE = {
-    0: [
-      '...tttt.....',
-      '..thhhht....',
-      '..thhhhht...',
-      '..hhkkkkt...',
-      '..thkkkht...',
-      '..tkkekt....',
-      '..tkkkkt....',
-      '...tkkkt....',
-      '..tsssst....',
-      '..tsssskt...',
-      '..tsssSt....',
-      '..tsssSt....',
-      '..tpppPt....',
-      '..tpppPt....',
-      '..tpp.Pt....',
-      '..tpp.Pt....',
-      '..too.ot....',
-      '..ttt.tt....'
-    ],
-    1: [
-      '...tttt.....',
-      '..thhhht....',
-      '..thhhhht...',
-      '..hhkkkkt...',
-      '..thkkkht...',
-      '..tkkekt....',
-      '..tkkkkt....',
-      '...tkkkt....',
-      '..tsssst....',
-      '.ktssssskt..',
-      '..tsssSt....',
-      '..tsssSt....',
-      '..tpppPt....',
-      '.tpppPPt....',
-      '.tpp..Pt....',
-      '.tp....Pt...',
-      '.to....ot...',
-      '.tt....tt...'
-    ],
-    2: [
-      '...tttt.....',
-      '..thhhht....',
-      '..thhhhht...',
-      '..hhkkkkt...',
-      '..thkkkht...',
-      '..tkkekt....',
-      '..tkkkkt....',
-      '...tkkkt....',
-      '..tsssst....',
-      '..tsssskt...',
-      '..tksssSt...',
-      '..tsssSt....',
-      '..tpppPt....',
-      '..tppPPt....',
-      '..tppPt.....',
-      '..tppPt.....',
-      '..toot......',
-      '..tttt......'
-    ]
-  };
-
-  // Seated, facing the camera / facing right. Used at the gate and in the
-  // cabin, which between them is a third of the level.
-  var SIT_DOWN = [
-    '............',
-    '....tttt....',
-    '...thhhht...',
-    '..thhhhhht..',
-    '..hhkkkkhh..',
-    '..thkkkkht..',
-    '..tkekkekt..',
-    '..tkkkkkkt..',
-    '...tkkkkt...',
-    '..tssssSst..',
-    '.tksssssSkt.',
-    '.tksssssSkt.',
-    '..tsssssSt..',
-    '..tpppPppt..',
-    '..tpppPppt..',
-    '..too.oot...',
-    '..ttt.ttt...',
-    '............'
+  var S0 = [
+    '....tttttt......',
+    '..tthhhhhhtt....',
+    '.thhhhhhhhhht...',
+    '.thhHHHHhhhkkt..',
+    '.thhhhhhhkkkkt..',
+    '.thhhhhkkkkkkt..',
+    '.thhhkkttkkkkt..',
+    '.thhhkkeekkkkt..',
+    '.thhhkkkkkkkkt..',
+    '..thkkkkkkkkt...',
+    '...tkkkkkkkt....',
+    '....tkkkkkt.....',
+    '..ttsswwwstt....',
+    '.tLsssswwcst....',
+    '.tLsssssccst....',
+    '.tLsssssssskt...',
+    '.tSssssssssKt...',
+    '.tSssssssssst...',
+    '..tsssssssst....',
+    '..tppppppppt....',
+    '..tpppppppt.....',
+    '..tpppppppt.....',
+    '..tPPPPPPt......',
+    '..toooooot......'
   ];
+  var S1 = S0.slice(0, 19).concat([
+    '..tppppppppt....',
+    '.tppppppppt.....',
+    '.tPPPt..tPPPt...',
+    '.tPPt....tPPt...',
+    '.toot....toot...'
+  ]);
+  var S2 = S0.slice(0, 19).concat([
+    '..tppppppppt....',
+    '..tpppppppt.....',
+    '..tPPPPPt.......',
+    '..tPPPPt........',
+    '..toooot........'
+  ]);
 
-  var SIT_SIDE = [
-    '............',
-    '...tttt.....',
-    '..thhhht....',
-    '..thhhhht...',
-    '..hhkkkkt...',
-    '..thkkkht...',
-    '..tkkekt....',
-    '..tkkkkt....',
-    '...tkkkt....',
-    '..tsssst....',
-    '..tsssskt...',
-    '..tsssSt....',
-    '..tpppppt...',
-    '..tpppppt...',
-    '..tP...Pt...',
-    '..to...ot...',
-    '..tt...tt...',
-    '............'
-  ];
-
-  // Rolling suitcase, 8x11.
+  // ------------------------------------------------------------------ bag
   var BAG = [
-    '..tttt..',
-    '..t..t..',
-    'tttttttt',
-    'tbbbbbbt',
-    'tbbbbbbt',
-    'tbSSSSbt',
-    'tbbbbbbt',
-    'tbbbbbbt',
-    'tbbbbbbt',
-    'tttttttt',
-    '.t....t.'
+    '...tttt...',
+    '...t..t...',
+    'tttttttttt',
+    'tbbbbbbbbt',
+    'tbBBBBBBbt',
+    'tbbbbbbbbt',
+    'tbbbbbbbbt',
+    'tbSSSSSSbt',
+    'tbbbbbbbbt',
+    'tbbbbbbbbt',
+    'tttttttttt',
+    '.t......t.',
+    '.o......o.',
+    '..........'
   ];
 
-  // Normalize every row to 12 (or its own width) so a miscount can't shear
-  // the sprite. Anything short is padded with transparent.
-  function fix(rows, w) {
+  // Validate rather than silently pad: a sheared sprite is very hard to spot
+  // by eye and very easy to introduce by miscounting one row.
+  var errors = [];
+  function check(name, rows, w, h) {
+    if (rows.length !== h) errors.push(name + ' has ' + rows.length + ' rows, expected ' + h);
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].length !== w) {
+        errors.push(name + ' row ' + i + ' is ' + rows[i].length + ' wide: "' + rows[i] + '"');
+      }
+    }
     return rows.map(function (r) {
       if (r.length > w) return r.slice(0, w);
       while (r.length < w) r += '.';
       return r;
     });
   }
-  [DOWN, UP, SIDE].forEach(function (set) {
-    for (var k in set) set[k] = fix(set[k], 12);
-  });
-  var SIT_D = fix(SIT_DOWN, 12), SIT_S = fix(SIT_SIDE, 12), BAG_F = fix(BAG, 8);
+
+  var DOWN = { 0: check('down0', D0, W, H), 1: check('down1', D1, W, H), 2: check('down2', D2, W, H) };
+  var UP   = { 0: check('up0', U0, W, H),   1: check('up1', U1, W, H),   2: check('up2', U2, W, H) };
+  var SIDE = { 0: check('side0', S0, W, H), 1: check('side1', S1, W, H), 2: check('side2', S2, W, H) };
+  var BAG_F = check('bag', BAG, 10, 14);
+
+  // Seated poses are derived from the standing idle so they can never drift
+  // out of sync with it: drop two rows in, fold the legs at the bottom.
+  function seat(rows, legs) {
+    return ['................', '................']
+      .concat(rows.slice(0, 19))
+      .concat(legs);
+  }
+  var SIT_D = seat(DOWN[0], ['..tppppppppppt..', '..tPPPPPPPPPPt..', '..toot....toot..']);
+  var SIT_S = seat(SIDE[0], ['..tppppppppppt..', '..tPPPPPPPPt....', '..toooot........']);
+
+  if (errors.length && typeof console !== 'undefined') console.warn('sprite errors:', errors);
+  RB.spriteErrors = errors;
 
   RB.sprites = {
     down: DOWN, up: UP, side: SIDE,
-    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F
+    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F,
+    W: W, H: H
   };
 
   // --------------------------------------------------------------- palettes
-  // A character is just a key->color map. Six silhouette-neutral bodies plus
-  // hair/shirt variation reads as a crowd at 240x160.
+  // Three tones per material. The mid tone is the character's identity; the
+  // shade and highlight are derived unless a caller wants them specific.
   RB.pal = function (o) {
-    var skin = o.skin || RB.P.skin0;
-    var shirt = o.shirt || RB.P.steel1;
-    var pants = o.pants || RB.P.night1;
+    var skin  = o.skin  || '#f0c090';
+    var hair  = o.hair  || '#3a2418';
+    var shirt = o.shirt || '#3c6fc0';
+    var pants = o.pants || '#2e5296';
+    var bag   = o.bag   || '#8a5a3c';
     return {
-      t: o.outline || RB.P.black,
-      h: o.hair || RB.P.warm0,
+      t: o.outline    || '#181428',
+      h: hair,
+      H: o.hairHi     || RB.shade(hair, 0.30),
       k: skin,
-      e: o.eye || RB.P.black,
+      K: o.skinShade  || RB.shade(skin, -0.20),
+      e: o.eye        || '#241c30',
       s: shirt,
-      S: o.shirtShade || RB.shade(shirt, -0.28),
+      S: o.shirtShade || RB.shade(shirt, -0.30),
+      L: o.shirtLight || RB.shade(shirt, 0.24),
+      w: o.collar     || '#f2eee0',
+      c: o.tie        || '#1f3468',
       p: pants,
-      P: o.pantsShade || RB.shade(pants, -0.3),
-      o: o.shoe || RB.P.black,
-      b: o.bag || RB.P.warm1
+      P: o.pantsShade || RB.shade(pants, -0.30),
+      o: o.shoe       || '#241e2c',
+      b: bag,
+      B: o.bagHi      || RB.shade(bag, 0.22)
     };
   };
 
-  // Draw a sprite (array of rows) at x,y in WORLD space with a palette map.
-  // `flip` mirrors horizontally. `tint`/`tintAmt` lets a whole scene be
-  // dimmed or warmed without authoring separate art — this is doing the job
-  // hardware palette registers would have done.
+  // Draw a sprite at x,y in WORLD space. `x,y` still mean what they meant
+  // when characters were 12x18 — the extra width and height are absorbed
+  // here — so every scene coordinate in the game stays valid.
   RB.drawSprite = function (rows, x, y, pal, flip, tint, tintAmt) {
     var ctx = RB.ctx;
-    var w = rows[0].length;
-    var px = Math.round(x - RB.cam.x), py = Math.round(y - RB.cam.y);
-    // Cheap offscreen cull.
-    if (px + w < 0 || px > RB.W || py + rows.length < 0 || py > RB.H) return;
+    var w = rows[0].length, h = rows.length;
+    var px = Math.round(x - RB.cam.x - (w - 12) / 2);
+    var py = Math.round(y - RB.cam.y - (h - 18));
+    if (px + w < 0 || px > RB.W || py + h < 0 || py > RB.H) return;
     var cache = {};
-    for (var ry = 0; ry < rows.length; ry++) {
+    for (var ry = 0; ry < h; ry++) {
       var row = rows[ry];
       for (var rx = 0; rx < w; rx++) {
         var key = row[flip ? (w - 1 - rx) : rx];
         if (key === '.' || key === undefined) continue;
         var c = cache[key];
         if (c === undefined) {
-          c = pal[key] || RB.P.rose;
+          c = pal[key] || '#ff00ff';
           if (tint && tintAmt) c = RB.mix(c, tint, tintAmt);
           cache[key] = c;
         }
@@ -841,8 +932,6 @@
   };
 
   // ------------------------------------------------------------------ actor
-  // Shared by the player and every NPC. Holds position, facing, and the walk
-  // cycle; scenes drive `vx/vy` or a script drives `x/y` directly.
   function Actor(o) {
     o = o || {};
     this.x = o.x || 0;
@@ -859,7 +948,6 @@
   }
 
   Actor.prototype.frames = function () {
-    // 4-step cycle from 3 frames: contact, pass, contact, pass(other side).
     var order = [1, 0, 2, 0];
     var set = this.dir === 'up' ? RB.sprites.up
             : this.dir === 'down' ? RB.sprites.down
@@ -876,24 +964,27 @@
   Actor.prototype.draw = function (tint, tintAmt) {
     if (this.hidden) return;
     var flip = this.dir === 'left';
-    var rows;
+    var rows, bob = 0;
     if (this.sitting) {
       rows = (this.dir === 'left' || this.dir === 'right') ? RB.sprites.sitSide : RB.sprites.sitDown;
     } else {
       rows = this.frames();
+      // Contact frames sit a pixel lower than the passing frame. It is one
+      // pixel and it is most of what makes the walk read as weight.
+      if (this.moving && [1, 2].indexOf([1, 0, 2, 0][Math.floor(this.anim) % 4]) >= 0) bob = 1;
     }
-    // Contact shadow — a 1px ellipse-ish smear. Without it characters look
-    // pasted onto the floor rather than standing on it.
+
     if (this.shadow) {
       var sx = Math.round(this.x - RB.cam.x), sy = Math.round(this.y - RB.cam.y);
-      RB.ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      RB.ctx.fillRect(sx + 2, sy + 17, 8, 2);
-      RB.ctx.fillRect(sx + 3, sy + 18, 6, 1);
+      RB.ctx.fillStyle = 'rgba(0,0,0,0.20)';
+      RB.ctx.fillRect(sx, sy + 17, 12, 2);
+      RB.ctx.fillRect(sx + 2, sy + 19, 8, 1);
     }
-    RB.drawSprite(rows, this.x, this.y, this.pal, flip, tint, tintAmt);
+    RB.drawSprite(rows, this.x, this.y + bob, this.pal, flip, tint, tintAmt);
+
     if (this.bag && !this.sitting) {
-      var bx = this.x + (flip ? 9 : -6);
-      RB.drawSprite(RB.sprites.bag, bx, this.y + 8, this.pal, flip, tint, tintAmt);
+      var bx = this.x + (flip ? 12 : -10);
+      RB.drawSprite(RB.sprites.bag, bx, this.y + 6, this.pal, flip, tint, tintAmt);
     }
   };
 
@@ -1703,16 +1794,22 @@
   // Defining them once and reusing them is nearly free and does more for
   // the feeling of a real trip than any amount of extra geometry.
   RB.cast = {
-    you:    RB.pal({ hair: '#3a2c22', shirt: '#4e6f8a', pants: '#2b3350', skin: P.skin0 }),
-    driver: RB.pal({ hair: '#241c18', shirt: '#3d4657', pants: '#232a38', skin: P.skin1 }),
-    agent:  RB.pal({ hair: '#2d2320', shirt: '#28406b', pants: '#1b2740', skin: P.skin0 }),
-    guard:  RB.pal({ hair: '#1e1a18', shirt: '#33405a', pants: '#222a3c', skin: P.skin1 }),
-    suit:   RB.pal({ hair: '#3b3b3f', shirt: '#5a5f6e', pants: '#33363f', skin: P.skin0 }),
-    student:RB.pal({ hair: '#4a2f22', shirt: '#3f7d78', pants: '#2f3a4a', skin: P.skin1 }),
-    elder:  RB.pal({ hair: '#c9c4bb', shirt: '#8a6f5e', pants: '#4a4038', skin: P.skin0 }),
-    kid:    RB.pal({ hair: '#5a3a20', shirt: '#c07a4e', pants: '#3a4a6a', skin: P.skin0 }),
-    coat:   RB.pal({ hair: '#241c18', shirt: '#9c4a4a', pants: '#2c3040', skin: P.skin1 }),
-    crew:   RB.pal({ hair: '#2b2320', shirt: '#1e2c4e', pants: '#151d33', skin: P.skin0 })
+    // You: a blue suit. White shirt, navy tie, trousers to match the jacket.
+    you: RB.pal({
+      hair: '#3a2a1c', skin: '#f0c090',
+      shirt: '#3c6fc0', shirtShade: '#27508f', shirtLight: '#5f92e0',
+      collar: '#f2eee0', tie: '#1c2f5e',
+      pants: '#2e5296', pantsShade: '#1f3a70', shoe: '#241e2c'
+    }),
+    driver:  RB.pal({ hair: '#2a1e16', skin: '#d8a068', shirt: '#6b7488', pants: '#333a4a', tie: '#3a4152' }),
+    agent:   RB.pal({ hair: '#2d2320', skin: '#f0c090', shirt: '#2a4e9c', pants: '#1e2f56', tie: '#c04048' }),
+    guard:   RB.pal({ hair: '#1e1a18', skin: '#c89060', shirt: '#3d5488', pants: '#26314e', tie: '#26314e' }),
+    suit:    RB.pal({ hair: '#4a4a52', skin: '#e8bc8c', shirt: '#6a7084', pants: '#3c414f', tie: '#8a4048' }),
+    student: RB.pal({ hair: '#5a3520', skin: '#d8a068', shirt: '#3fa89c', pants: '#3a4658', tie: '#3fa89c' }),
+    elder:   RB.pal({ hair: '#ded8cc', skin: '#f0c090', shirt: '#b08a5c', pants: '#5a4c40', tie: '#8a6a44' }),
+    kid:     RB.pal({ hair: '#6a4222', skin: '#f0c090', shirt: '#e08a44', pants: '#3f5488', tie: '#e08a44' }),
+    coat:    RB.pal({ hair: '#2a1e18', skin: '#d8a068', shirt: '#c04a4a', pants: '#38344a', tie: '#8a3438' }),
+    crew:    RB.pal({ hair: '#2b2320', skin: '#f0c090', shirt: '#263c74', pants: '#1a2646', tie: '#c04048' })
   };
 
   // ===================================================================== curb
@@ -1790,7 +1887,7 @@
         yield RB.tweenAll([RB.tween(driver, 'x', 144, 1.8, 'inOut'), RB.tween(bag, 'x', 146, 1.8, 'inOut')]);
         yield RB.call(function () { driver.moving = false; driver.dir = 'down'; });
         yield RB.wait(0.5);
-        yield RB.say(['Here you are. Safe flight.'], 'Driver', { top: true });
+        yield RB.say(['Here you are, sir.'], 'Driver', { top: true });
         yield RB.wait(0.6);
         yield RB.call(function () { driver.moving = true; driver.dir = 'right'; });
         yield RB.tween(driver, 'x', 180, 2.0, 'inOut');
@@ -2003,8 +2100,8 @@
       if (atDesk && !busy && RB.input.pressed('action')) {
         script = new RB.Script(function* () {
           yield RB.call(function () { player.dir = 'up'; player.moving = false; });
-          yield RB.say(['Morning. Just the one bag?'], 'Agent');
-          yield RB.say(['Window seat, as you asked. Gate 14, straight on down.'], 'Agent');
+          yield RB.say(['Ticket, please.'], 'Agent');
+          yield RB.say(['Thank you, sir.'], 'Agent');
           yield RB.call(function () {
             RB.audio.sfx.scan();
             player.bag = false;
@@ -2013,8 +2110,8 @@
             belt.on = true;
             belt.x = 0;
           });
-          yield RB.wait(1.5);
-          yield RB.say(['Take your time. You have plenty of it.'], 'Agent');
+          yield RB.wait(1.4);
+          yield RB.say(['Gate 14. Enjoy your flight.'], 'Agent');
         });
       }
 
@@ -2147,8 +2244,9 @@
           yield RB.call(function () { player.dir = 'right'; player.moving = true; });
           yield RB.tween(player, 'x', ARCH_X + 30, 1.6, 'inOut');
           yield RB.call(function () { player.moving = false; RB.audio.sfx.belt(); flash = 1; });
-          yield RB.wait(0.8);
-          yield RB.say(['All clear. Enjoy your morning.'], 'Officer');
+          yield RB.say(['Passport, please.'], 'Officer');
+          yield RB.wait(0.7);
+          yield RB.say(['Thank you.'], 'Officer');
           yield RB.call(function () { cleared = true; });
         });
       }
@@ -2415,8 +2513,14 @@
       var atDoor = boardingCalled && !seated && !busy && player.x > GATE_DOOR - 20;
       s.boardPrompt = atDoor;
       if (atDoor && RB.input.pressed('action')) {
-        RB.audio.sfx.scan();
-        RB.go('jetbridge', { fade: 1.4 });
+        script = new RB.Script(function* () {
+          yield RB.say(['Boarding pass, please.'], 'Gate agent');
+          yield RB.call(function () { RB.audio.sfx.scan(); });
+          yield RB.wait(0.7);
+          yield RB.say(['Thank you, sir.'], 'Gate agent');
+          yield RB.call(function () { RB.go('jetbridge', { fade: 1.4 }); });
+          yield RB.wait(3);
+        });
       }
     };
 
@@ -2670,7 +2774,7 @@
     };
 
     function seated(x, pal) {
-      return new RB.Actor({ x: x, y: 34, pal: pal, dir: 'down', sitting: true, shadow: false });
+      return new RB.Actor({ x: x, y: 41, pal: pal, dir: 'down', sitting: true, shadow: false });
     }
 
     s.p = function () { return player; };
@@ -2698,7 +2802,7 @@
         script = new RB.Script(function* () {
           yield RB.call(function () {
             player.sitting = true; player.moving = false; player.dir = 'down';
-            player.x = MY_SEAT; player.y = 34; player.shadow = false;
+            player.x = MY_SEAT; player.y = 41; player.shadow = false;
           });
           yield RB.wait(1.6);
           yield RB.captionFor('You put your head against the glass.', 4.6, 132);
@@ -3254,9 +3358,7 @@
       }
       if (titleA.v > 0.01) {
         RB.ctx.globalAlpha = titleA.v;
-        RB.font.drawCentered('RHUBARB', RB.W / 2, RB.H / 2 - 14, '#fff6dc', { shadow: 'rgba(10,8,18,0.95)', scale: 2, tracking: 3 });
-        RB.ctx.globalAlpha = titleA.v * 0.75;
-        RB.font.drawCentered('a short flight', RB.W / 2, RB.H / 2 + 8, '#e8d4b4', { shadow: 'rgba(10,8,18,0.9)', tracking: 1 });
+        RB.font.drawCentered('RHUBARB', RB.W / 2, RB.H / 2 - 7, '#fff6dc', { shadow: 'rgba(10,8,18,0.95)', scale: 2, tracking: 3 });
         RB.ctx.globalAlpha = 1;
       }
       if (s.finished && Math.floor(RB.now * 1.2) % 2 === 0) {
@@ -3341,8 +3443,6 @@
 
       RB.ctx.globalAlpha = RB.clamp(t / 1.6, 0, 1);
       RB.font.drawCentered('RHUBARB', RB.W / 2, 34, '#f2e3c6', { shadow: 'rgba(8,11,22,0.85)', scale: 2, tracking: 3 });
-      RB.ctx.globalAlpha = RB.clamp((t - 0.8) / 1.6, 0, 1) * 0.8;
-      RB.font.drawCentered('a short flight', RB.W / 2, 54, '#b3c0d4', { shadow: 'rgba(8,11,22,0.8)', tracking: 1 });
       RB.ctx.globalAlpha = 1;
 
       if (t > 2.0 && Math.floor(t * 1.4) % 2 === 0) {
@@ -3364,6 +3464,7 @@
   function frame(ts) {
     requestAnimationFrame(frame);
     if (RB.paused) { RB.present(); return; }
+    RB.input.sync();
     if (!last) last = ts;
     var dt = (ts - last) / 1000;
     last = ts;
@@ -3393,7 +3494,7 @@
 
   RB.boot = function (canvas) {
     RB.attach(canvas);
-    RB.bindTouch(canvas);
+    RB.mountTouchControls();
     RB.now = 0;
     RB.enterScene('title');
     // Browsers require a gesture before audio; wire the first key/tap to it.
@@ -3410,6 +3511,9 @@ RB.boot(document.getElementById('screen'));
   // The page needs one gesture before audio can start, and the hint should
   // get out of the way the moment the player has read it.
   var hint = document.getElementById('hint');
+  if (RB.touchControlsVisible && RB.touchControlsVisible()) {
+    hint.innerHTML = 'tap <b>Z</b> to begin &nbsp;·&nbsp; d-pad to walk';
+  }
   function go() {
     if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
     hint.style.opacity = 0;

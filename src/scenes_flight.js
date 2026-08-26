@@ -40,7 +40,7 @@
     };
 
     function seated(x, pal) {
-      return new RB.Actor({ x: x, y: 34, pal: pal, dir: 'down', sitting: true, shadow: false });
+      return new RB.Actor({ x: x, y: 41, pal: pal, dir: 'down', sitting: true, shadow: false });
     }
 
     s.p = function () { return player; };
@@ -68,7 +68,7 @@
         script = new RB.Script(function* () {
           yield RB.call(function () {
             player.sitting = true; player.moving = false; player.dir = 'down';
-            player.x = MY_SEAT; player.y = 34; player.shadow = false;
+            player.x = MY_SEAT; player.y = 41; player.shadow = false;
           });
           yield RB.wait(1.6);
           yield RB.captionFor('You put your head against the glass.', 4.6, 132);
@@ -624,9 +624,7 @@
       }
       if (titleA.v > 0.01) {
         RB.ctx.globalAlpha = titleA.v;
-        RB.font.drawCentered('RHUBARB', RB.W / 2, RB.H / 2 - 14, '#fff6dc', { shadow: 'rgba(10,8,18,0.95)', scale: 2, tracking: 3 });
-        RB.ctx.globalAlpha = titleA.v * 0.75;
-        RB.font.drawCentered('a short flight', RB.W / 2, RB.H / 2 + 8, '#e8d4b4', { shadow: 'rgba(10,8,18,0.9)', tracking: 1 });
+        RB.font.drawCentered('RHUBARB', RB.W / 2, RB.H / 2 - 7, '#fff6dc', { shadow: 'rgba(10,8,18,0.95)', scale: 2, tracking: 3 });
         RB.ctx.globalAlpha = 1;
       }
       if (s.finished && Math.floor(RB.now * 1.2) % 2 === 0) {

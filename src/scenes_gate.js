@@ -206,8 +206,14 @@
       var atDoor = boardingCalled && !seated && !busy && player.x > GATE_DOOR - 20;
       s.boardPrompt = atDoor;
       if (atDoor && RB.input.pressed('action')) {
-        RB.audio.sfx.scan();
-        RB.go('jetbridge', { fade: 1.4 });
+        script = new RB.Script(function* () {
+          yield RB.say(['Boarding pass, please.'], 'Gate agent');
+          yield RB.call(function () { RB.audio.sfx.scan(); });
+          yield RB.wait(0.7);
+          yield RB.say(['Thank you, sir.'], 'Gate agent');
+          yield RB.call(function () { RB.go('jetbridge', { fade: 1.4 }); });
+          yield RB.wait(3);
+        });
       }
     };
 

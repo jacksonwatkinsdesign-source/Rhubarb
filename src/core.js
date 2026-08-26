@@ -57,16 +57,19 @@
     window.addEventListener('resize', resize);
   };
 
+  RB.uiInset = 0;          // px reserved at the bottom for touch controls
+
   function resize() {
     var vw = window.innerWidth, vh = window.innerHeight;
     screen.width = vw;
     screen.height = vh;
+    var avail = Math.max(80, vh - RB.uiInset);
     // Integer scale only — a fractional scale on a 240x160 buffer produces
     // uneven pixel sizes, which is the single most common way a pixel game
     // gives itself away as not really being one.
-    scale = Math.max(1, Math.floor(Math.min(vw / RB.W, vh / RB.H)));
+    scale = Math.max(1, Math.floor(Math.min(vw / RB.W, avail / RB.H)));
     offX = Math.floor((vw - RB.W * scale) / 2);
-    offY = Math.floor((vh - RB.H * scale) / 2);
+    offY = Math.floor((avail - RB.H * scale) / 2);
     sctx.imageSmoothingEnabled = false;
   }
   RB.resize = resize;
@@ -151,7 +154,7 @@
   };
 
   // ------------------------------------------------------------------ input
-  var keys = {}, prev = {};
+  var keyState = {}, touchState = {}, prev = {};
   var MAP = {
     ArrowLeft: 'left', KeyA: 'left',
     ArrowRight: 'right', KeyD: 'right',
@@ -162,9 +165,19 @@
     ShiftLeft: 'slow', ShiftRight: 'slow'
   };
 
+  var ACTIONS = ['left', 'right', 'up', 'down', 'action', 'cancel', 'slow'];
+
   RB.input = {
     left: false, right: false, up: false, down: false,
     action: false, cancel: false, slow: false,
+    // Merge the two input sources. Called once per frame by the main loop —
+    // deliberately not by the test harnesses, which drive RB.input directly.
+    sync: function () {
+      for (var i = 0; i < ACTIONS.length; i++) {
+        var n = ACTIONS[i];
+        this[n] = !!(keyState[n] || touchState[n]);
+      }
+    },
     pressed: function (n) { return this[n] && !prev[n]; },
     anyPressed: function () {
       return this.pressed('action') || this.pressed('cancel') ||
@@ -172,42 +185,26 @@
              this.pressed('up') || this.pressed('down');
     },
     latch: function () {
-      for (var k in MAP) prev[MAP[k]] = this[MAP[k]];
+      for (var i = 0; i < ACTIONS.length; i++) prev[ACTIONS[i]] = this[ACTIONS[i]];
     }
   };
 
+  RB.setTouch = function (name, on) { touchState[name] = !!on; };
+  RB.clearTouch = function () { touchState = {}; };
+
   window.addEventListener('keydown', function (e) {
     var a = MAP[e.code];
-    if (a) { keys[a] = true; RB.input[a] = true; e.preventDefault(); }
+    if (a) { keyState[a] = true; RB.input[a] = true; e.preventDefault(); }
     if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
   });
   window.addEventListener('keyup', function (e) {
     var a = MAP[e.code];
-    if (a) { keys[a] = false; RB.input[a] = false; e.preventDefault(); }
+    if (a) { keyState[a] = false; RB.input[a] = false; e.preventDefault(); }
   });
   window.addEventListener('blur', function () {
-    for (var k in keys) { keys[k] = false; RB.input[k] = false; }
+    keyState = {}; touchState = {};
+    for (var i = 0; i < ACTIONS.length; i++) RB.input[ACTIONS[i]] = false;
   });
-
-  // Touch: left half = walk toward tap, right half = action. Enough to play
-  // it on a phone without building a whole virtual pad.
-  RB.bindTouch = function (el) {
-    function set(on, e) {
-      if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
-      var t = e.changedTouches ? e.changedTouches[0] : e;
-      var r = el.getBoundingClientRect();
-      var nx = (t.clientX - r.left) / r.width, ny = (t.clientY - r.top) / r.height;
-      RB.input.left = RB.input.right = RB.input.up = RB.input.down = RB.input.action = false;
-      if (!on) return;
-      if (nx > 0.72) { RB.input.action = true; return; }
-      var dx = nx - 0.5, dy = ny - 0.5;
-      if (Math.abs(dx) > 0.06) RB.input[dx < 0 ? 'left' : 'right'] = true;
-      if (Math.abs(dy) > 0.06) RB.input[dy < 0 ? 'up' : 'down'] = true;
-    }
-    el.addEventListener('touchstart', function (e) { set(true, e); e.preventDefault(); }, { passive: false });
-    el.addEventListener('touchmove', function (e) { set(true, e); e.preventDefault(); }, { passive: false });
-    el.addEventListener('touchend', function (e) { set(false, e); e.preventDefault(); }, { passive: false });
-  };
 
   // ----------------------------------------------------------------- camera
   RB.cam = { x: 0, y: 0 };

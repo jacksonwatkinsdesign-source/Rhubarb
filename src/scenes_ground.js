@@ -7,16 +7,22 @@
   // Defining them once and reusing them is nearly free and does more for
   // the feeling of a real trip than any amount of extra geometry.
   RB.cast = {
-    you:    RB.pal({ hair: '#3a2c22', shirt: '#4e6f8a', pants: '#2b3350', skin: P.skin0 }),
-    driver: RB.pal({ hair: '#241c18', shirt: '#3d4657', pants: '#232a38', skin: P.skin1 }),
-    agent:  RB.pal({ hair: '#2d2320', shirt: '#28406b', pants: '#1b2740', skin: P.skin0 }),
-    guard:  RB.pal({ hair: '#1e1a18', shirt: '#33405a', pants: '#222a3c', skin: P.skin1 }),
-    suit:   RB.pal({ hair: '#3b3b3f', shirt: '#5a5f6e', pants: '#33363f', skin: P.skin0 }),
-    student:RB.pal({ hair: '#4a2f22', shirt: '#3f7d78', pants: '#2f3a4a', skin: P.skin1 }),
-    elder:  RB.pal({ hair: '#c9c4bb', shirt: '#8a6f5e', pants: '#4a4038', skin: P.skin0 }),
-    kid:    RB.pal({ hair: '#5a3a20', shirt: '#c07a4e', pants: '#3a4a6a', skin: P.skin0 }),
-    coat:   RB.pal({ hair: '#241c18', shirt: '#9c4a4a', pants: '#2c3040', skin: P.skin1 }),
-    crew:   RB.pal({ hair: '#2b2320', shirt: '#1e2c4e', pants: '#151d33', skin: P.skin0 })
+    // You: a blue suit. White shirt, navy tie, trousers to match the jacket.
+    you: RB.pal({
+      hair: '#3a2a1c', skin: '#f0c090',
+      shirt: '#3c6fc0', shirtShade: '#27508f', shirtLight: '#5f92e0',
+      collar: '#f2eee0', tie: '#1c2f5e',
+      pants: '#2e5296', pantsShade: '#1f3a70', shoe: '#241e2c'
+    }),
+    driver:  RB.pal({ hair: '#2a1e16', skin: '#d8a068', shirt: '#6b7488', pants: '#333a4a', tie: '#3a4152' }),
+    agent:   RB.pal({ hair: '#2d2320', skin: '#f0c090', shirt: '#2a4e9c', pants: '#1e2f56', tie: '#c04048' }),
+    guard:   RB.pal({ hair: '#1e1a18', skin: '#c89060', shirt: '#3d5488', pants: '#26314e', tie: '#26314e' }),
+    suit:    RB.pal({ hair: '#4a4a52', skin: '#e8bc8c', shirt: '#6a7084', pants: '#3c414f', tie: '#8a4048' }),
+    student: RB.pal({ hair: '#5a3520', skin: '#d8a068', shirt: '#3fa89c', pants: '#3a4658', tie: '#3fa89c' }),
+    elder:   RB.pal({ hair: '#ded8cc', skin: '#f0c090', shirt: '#b08a5c', pants: '#5a4c40', tie: '#8a6a44' }),
+    kid:     RB.pal({ hair: '#6a4222', skin: '#f0c090', shirt: '#e08a44', pants: '#3f5488', tie: '#e08a44' }),
+    coat:    RB.pal({ hair: '#2a1e18', skin: '#d8a068', shirt: '#c04a4a', pants: '#38344a', tie: '#8a3438' }),
+    crew:    RB.pal({ hair: '#2b2320', skin: '#f0c090', shirt: '#263c74', pants: '#1a2646', tie: '#c04048' })
   };
 
   // ===================================================================== curb
@@ -94,7 +100,7 @@
         yield RB.tweenAll([RB.tween(driver, 'x', 144, 1.8, 'inOut'), RB.tween(bag, 'x', 146, 1.8, 'inOut')]);
         yield RB.call(function () { driver.moving = false; driver.dir = 'down'; });
         yield RB.wait(0.5);
-        yield RB.say(['Here you are. Safe flight.'], 'Driver', { top: true });
+        yield RB.say(['Here you are, sir.'], 'Driver', { top: true });
         yield RB.wait(0.6);
         yield RB.call(function () { driver.moving = true; driver.dir = 'right'; });
         yield RB.tween(driver, 'x', 180, 2.0, 'inOut');
@@ -307,8 +313,8 @@
       if (atDesk && !busy && RB.input.pressed('action')) {
         script = new RB.Script(function* () {
           yield RB.call(function () { player.dir = 'up'; player.moving = false; });
-          yield RB.say(['Morning. Just the one bag?'], 'Agent');
-          yield RB.say(['Window seat, as you asked. Gate 14, straight on down.'], 'Agent');
+          yield RB.say(['Ticket, please.'], 'Agent');
+          yield RB.say(['Thank you, sir.'], 'Agent');
           yield RB.call(function () {
             RB.audio.sfx.scan();
             player.bag = false;
@@ -317,8 +323,8 @@
             belt.on = true;
             belt.x = 0;
           });
-          yield RB.wait(1.5);
-          yield RB.say(['Take your time. You have plenty of it.'], 'Agent');
+          yield RB.wait(1.4);
+          yield RB.say(['Gate 14. Enjoy your flight.'], 'Agent');
         });
       }
 
@@ -451,8 +457,9 @@
           yield RB.call(function () { player.dir = 'right'; player.moving = true; });
           yield RB.tween(player, 'x', ARCH_X + 30, 1.6, 'inOut');
           yield RB.call(function () { player.moving = false; RB.audio.sfx.belt(); flash = 1; });
-          yield RB.wait(0.8);
-          yield RB.say(['All clear. Enjoy your morning.'], 'Officer');
+          yield RB.say(['Passport, please.'], 'Officer');
+          yield RB.wait(0.7);
+          yield RB.say(['Thank you.'], 'Officer');
           yield RB.call(function () { cleared = true; });
         });
       }

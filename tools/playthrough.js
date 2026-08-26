@@ -66,14 +66,16 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
       RB.input.action = false;
 
       const g = RB.scene.dbg && RB.scene.dbg();
-      if (g && g.seated && !g.boardingCalled) {
+      // Dialogue is always handled first: any branch that walks instead of
+      // tapping will sit forever in front of an unadvanced line.
+      if (RB.dialog.active()) {
+        press = !press;
+        RB.input.action = press;            // tap to advance, don't hold
+      } else if (g && g.seated && !g.boardingCalled) {
         // Seated at the gate with the aeroplane not in yet: do nothing at all,
         // which is the entire intended activity.
       } else if (g && g.boardingCalled && !RB.scene.boardPrompt) {
         RB.input.right = true;              // stand up, then head for the door
-      } else if (RB.dialog.active()) {
-        press = !press;
-        RB.input.action = press;            // tap to advance, don't hold
       } else if (anyPrompt()) {
         press = !press;
         RB.input.action = press;

@@ -5,7 +5,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const ORDER = [
-  'core.js', 'font.js', 'sprites.js', 'audio.js', 'world.js',
+  'core.js', 'font.js', 'touch.js', 'sprites.js', 'audio.js', 'world.js',
   'scenes_ground.js', 'scenes_gate.js', 'scenes_flight.js', 'game.js'
 ];
 
@@ -45,6 +45,9 @@ RB.boot(document.getElementById('screen'));
   // The page needs one gesture before audio can start, and the hint should
   // get out of the way the moment the player has read it.
   var hint = document.getElementById('hint');
+  if (RB.touchControlsVisible && RB.touchControlsVisible()) {
+    hint.innerHTML = 'tap <b>Z</b> to begin &nbsp;·&nbsp; d-pad to walk';
+  }
   function go() {
     if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
     hint.style.opacity = 0;

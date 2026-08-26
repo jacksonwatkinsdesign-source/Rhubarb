@@ -42,8 +42,6 @@
 
       RB.ctx.globalAlpha = RB.clamp(t / 1.6, 0, 1);
       RB.font.drawCentered('RHUBARB', RB.W / 2, 34, '#f2e3c6', { shadow: 'rgba(8,11,22,0.85)', scale: 2, tracking: 3 });
-      RB.ctx.globalAlpha = RB.clamp((t - 0.8) / 1.6, 0, 1) * 0.8;
-      RB.font.drawCentered('a short flight', RB.W / 2, 54, '#b3c0d4', { shadow: 'rgba(8,11,22,0.8)', tracking: 1 });
       RB.ctx.globalAlpha = 1;
 
       if (t > 2.0 && Math.floor(t * 1.4) % 2 === 0) {
@@ -65,6 +63,7 @@
   function frame(ts) {
     requestAnimationFrame(frame);
     if (RB.paused) { RB.present(); return; }
+    RB.input.sync();
     if (!last) last = ts;
     var dt = (ts - last) / 1000;
     last = ts;
@@ -94,7 +93,7 @@
 
   RB.boot = function (canvas) {
     RB.attach(canvas);
-    RB.bindTouch(canvas);
+    RB.mountTouchControls();
     RB.now = 0;
     RB.enterScene('title');
     // Browsers require a gesture before audio; wire the first key/tap to it.

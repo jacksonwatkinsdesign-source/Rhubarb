@@ -11,12 +11,18 @@ Rendered at **240×160** — GBA native — and integer-scaled to fit the window
 
 Open `index.html` in a browser. No build step, no server, no dependencies.
 
-| | |
-|---|---|
-| Walk | Arrow keys or WASD |
-| Interact | Z (also Enter / Space / E) |
-| Slow down | Hold Shift |
-| Stand up | Any direction |
+| | Keyboard | Touch |
+|---|---|---|
+| Walk | Arrow keys or WASD | D-pad (8-way, slide your thumb) |
+| Interact | Z (also Enter / Space / E) | Z button |
+| Slow down | Hold Shift | — |
+| Stand up | Any direction | Any direction |
+
+On a touch device the on-screen controls appear automatically and the game
+letterboxes above them, so a thumb never covers the picture. They are DOM
+elements rather than drawn into the framebuffer, so they stay finger-sized
+however far the game is scaled up, and every active touch is hit-tested each
+event — which is what makes holding a direction while tapping the button work.
 
 One playthrough is roughly 6–10 minutes.
 
@@ -40,7 +46,8 @@ the people you fly with.
 index.html            loads src/* in order; open this to play
 src/core.js           framebuffer, integer scaling, input, tweens, cutscene runner
 src/font.js           5x7 bitmap font (validated at load)
-src/sprites.js        12x18 body template + palette-swap actors
+src/touch.js          on-screen d-pad and button for touch devices
+src/sprites.js        16x24 body template + palette-swap actors
 src/audio.js          chiptune pad engine and per-scene ambience
 src/world.js          scene framework, dialogue, and the airport art vocabulary
 src/scenes_ground.js  curb, check-in, security
@@ -55,10 +62,17 @@ tools/shoot.js        screenshots each scene into shots/
 ### Notes on the approach
 
 **Everything is drawn in code.** There are no image files. Characters are
-string-array sprites palette-swapped per person; environments are painted from
-rectangles into the framebuffer. That is what lets a whole airport exist without
-an art budget, and it is also the first thing you would replace with real
-tilesets.
+16x24 string-array sprites palette-swapped per person; environments are painted
+from rectangles into the framebuffer. That is what lets a whole airport exist
+without an art budget, and it is also the first thing you would replace with
+real tilesets.
+
+**One body, ten people.** Every character is the same three-tone template —
+outline, mid, shade, highlight per material — recoloured through `RB.pal()`.
+The player is a blue suit with a white collar and navy tie; the rest of the
+cast are pitched to read apart at a glance in silhouette and hue. Sprite rows
+are validated at load, because a sheared sprite is very hard to spot by eye and
+very easy to introduce by miscounting one row.
 
 **Cutscenes are generators.** `RB.Script(function*(){ yield RB.tween(...) })`
 keeps the van arrival and the takeoff roll readable as sequences instead of a
@@ -72,7 +86,9 @@ looking like hardware from 1994.
 
 ```
 node tools/playthrough.js   # completes the level, fails loudly if it can't
+node tools/touchtest.js     # drives the on-screen controls on a tablet viewport
 node tools/shoot.js         # writes shots/*.png for every scene
+node tools/spritesheet.js   # writes shots/spritesheet.png — the cast, every frame
 node tools/build.js         # writes dist/rhubarb.html
 ```
 
@@ -99,9 +115,6 @@ without the risk.
 
 Honest list, roughly in the order I would fix them:
 
-- **Sprite work.** One body template with palette swaps reads as a crowd at this
-  resolution, but everyone walks identically. Per-character idle poses and a
-  couple of extra silhouettes would do more than any other single change.
 - **No save.** The level is short enough not to need one, but it should
   remember you finished.
 - **The cabin's near row** is drawn but you cannot interact with it; the window
@@ -109,4 +122,7 @@ Honest list, roughly in the order I would fix them:
 - **Non-window seats** are decorative — the game seats you in 14A regardless.
 - **No audio mixing per scene beyond a noise bed**; a real pass would want
   discrete PA announcements and footstep sounds.
-- **Touch controls are minimal** (tap-left-half to walk, right-half to act).
+- **Sprites are one template.** Ten characters share a body and a walk cycle.
+  Per-character idle poses and a couple of extra silhouettes would do more than
+  any other single change.
+- **No haptics or button-repeat on touch**, and no way to reposition the pad.
