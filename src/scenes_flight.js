@@ -11,7 +11,7 @@
     // A cabin reads from three bands stacked in depth: portholes behind, a
     // row of headrests with people in them, and the backs of the row nearest
     // camera closing off the bottom of the frame. The aisle is the gap.
-    var BINS = 12, WIN = 26, HEAD = 48, BACK = 58, AISLE = 84, NEAR = 114;
+    var BINS = 12, WIN = 26, HEAD = 42, BACK = 55, AISLE = 84, NEAR = 114;
     var MY_SEAT = 322;
     var PITCH = 30;              // seat pitch, in px
 
@@ -42,7 +42,7 @@
     };
 
     function seated(x, pal) {
-      return new RB.Actor({ x: x, y: 41, pal: pal, dir: 'down', sitting: true, shadow: false });
+      return new RB.Actor({ x: x, y: 58, pal: pal, dir: 'down', sitting: true, shadow: false });
     }
 
     s.p = function () { return player; };
@@ -70,7 +70,7 @@
         script = new RB.Script(function* () {
           yield RB.call(function () {
             player.sitting = true; player.moving = false; player.dir = 'down';
-            player.x = MY_SEAT; player.y = 41; player.shadow = false;
+            player.x = MY_SEAT; player.y = 58; player.shadow = false;
           });
           yield RB.wait(1.6);
           yield RB.captionFor('You put your head against the glass.', 4.6, 132);
@@ -126,14 +126,15 @@
         RB.wrect(px - 1, WIN + 17, 15, 1, '#282e3e');
       }
 
-      // Far row: seat backs with headrests. Passengers are drawn between the
-      // back and the headrest so they sit *in* the seats.
-      farBacks(x0, w);
-      var vis = cast.concat(s.seated ? [] : []);
+      // Far row, seen from the front: shell behind, then the passenger, then
+      // the cushion and armrests in front of their lap. Two passes is what
+      // makes them sit *in* the seat instead of on a slab.
+      farShells(x0, w);
+      var vis = cast.slice();
+      if (s.seated) vis.push(player);
       vis.sort(function (a, b) { return a.x - b.x; });
       vis.forEach(function (a) { a.draw(P.warm4, 0.10); });
-      if (s.seated) player.draw(P.warm4, 0.10);
-      farHeadrests(x0, w);
+      farFronts(x0, w);
 
       // Aisle.
       RB.wrect(x0, AISLE, w, NEAR - AISLE, '#2b3142');
@@ -142,9 +143,9 @@
       RB.ctx.globalAlpha = 0.07;
       RB.wrect(x0, AISLE + 3, w, 5, P.warm4);
       RB.ctx.globalAlpha = 1;
-      // Aisle floor strip lighting, low down where it actually is.
+      // Aisle floor strip lighting, down at the skirting where it belongs.
       for (var sx2 = Math.floor(x0 / 26) * 26; sx2 < x0 + w; sx2 += 26) {
-        RB.wrect(sx2 + 6, NEAR - 6, 6, 1, '#7d6f4e');
+        RB.wrect(sx2 + 6, AISLE + 3, 7, 1, '#6d6247');
       }
 
       if (!s.seated) {
@@ -162,40 +163,64 @@
       if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'Z  sit');
     };
 
-    function farBacks(x0, w) {
-      var c = '#3f5875';
+    // Seat fabric. Three tones plus a seam, and a gap between seats — at
+    // 26 wide on a 30 pitch they used to butt together into a wall.
+    var FAR = '#41597a', NEARC = '#33485f';
+
+    function farShells(x0, w) {
+      var c = FAR, hi = RB.shade(c, 0.24), lo = RB.shade(c, -0.30), seam = RB.shade(c, -0.52);
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        RB.wrect(x + 2, BACK, 25, AISLE - BACK - 2, c);
-        RB.wrect(x + 2, BACK, 25, 1, RB.shade(c, 0.20));
-        RB.wrect(x + 26, BACK, 2, AISLE - BACK - 2, RB.shade(c, -0.35));
-        RB.wrect(x + 2, AISLE - 4, 25, 2, RB.shade(c, -0.42));   // seat base
-        RB.wrect(x + 27, BACK + 8, 4, 3, RB.shade(c, -0.2));     // armrest
+        // Headrest, sitting proud of the back with its own cover.
+        RB.wrect(x + 5, HEAD, 20, 13, c);
+        RB.wrect(x + 5, HEAD, 20, 1, hi);
+        RB.wrect(x + 7, HEAD + 2, 16, 8, RB.shade(c, 0.10));
+        RB.wrect(x + 5, HEAD + 12, 20, 1, lo);
+        // Back, with a lit bolster on one side and a shadowed one on the other.
+        RB.wrect(x + 3, BACK, 24, 22, c);
+        RB.wrect(x + 3, BACK, 24, 1, hi);
+        RB.wrect(x + 3, BACK, 3, 22, RB.shade(c, 0.10));
+        RB.wrect(x + 24, BACK, 3, 22, lo);
+        RB.wrect(x + 28, HEAD, 2, AISLE - HEAD, seam);
       }
     }
 
-    function farHeadrests(x0, w) {
-      var c = '#4a6684';
+    function farFronts(x0, w) {
+      var c = FAR, hi = RB.shade(c, 0.20), lo = RB.shade(c, -0.32), lo2 = RB.shade(c, -0.50);
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        RB.wrect(x + 4, HEAD, 21, 11, c);
-        RB.wrect(x + 4, HEAD, 21, 1, RB.shade(c, 0.28));
-        RB.wrect(x + 4, HEAD + 10, 21, 1, RB.shade(c, -0.35));
-        RB.wrect(x + 6, HEAD + 2, 17, 7, RB.shade(c, -0.12));    // antimacassar
+        // Seat cushion across the lap, then the armrests either side.
+        RB.wrect(x + 2, 74, 26, 8, RB.shade(c, -0.14));
+        RB.wrect(x + 2, 74, 26, 1, hi);
+        RB.wrect(x + 2, 81, 26, 2, lo2);
+        RB.wrect(x + 1, 68, 4, 5, lo);
+        RB.wrect(x + 1, 68, 4, 1, hi);
+        RB.wrect(x + 25, 68, 4, 5, lo);
+        RB.wrect(x + 25, 68, 4, 1, hi);
+        RB.wrect(x + 28, 74, 2, 10, lo2);
       }
     }
 
+    // The nearest row, from behind. A flat fill read as lockers, so the back
+    // carries a top-to-bottom gradient, a tray seam and a pocket.
     function nearBacks(x0, w) {
-      var c = '#33485f';
-      RB.wrect(x0, NEAR, w, RB.H - NEAR, '#1e2430');
+      var c = NEARC, hi = RB.shade(c, 0.26), lo = RB.shade(c, -0.34), seam = RB.shade(c, -0.55);
+      var h = RB.H - NEAR;
+      RB.wrect(x0, NEAR, w, h, '#1b212c');
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        RB.wrect(x + 2, NEAR, 25, RB.H - NEAR, c);
-        RB.wrect(x + 2, NEAR, 25, 2, RB.shade(c, 0.26));          // headrest top
-        RB.wrect(x + 4, NEAR + 2, 21, 9, RB.shade(c, 0.10));
-        RB.wrect(x + 26, NEAR, 2, RB.H - NEAR, RB.shade(c, -0.4));
-        RB.wrect(x + 6, NEAR + 20, 17, 2, RB.shade(c, -0.28));    // tray latch
-        RB.wrect(x + 10, NEAR + 30, 9, 6, RB.shade(c, -0.18));    // seat pocket
+        for (var i = 0; i < h; i++) {
+          RB.wrect(x + 3, NEAR + i, 24, 1, RB.mix(c, RB.shade(c, -0.34), i / h));
+        }
+        RB.wrect(x + 5, NEAR - 2, 20, 14, RB.shade(c, 0.16));      // headrest
+        RB.wrect(x + 5, NEAR - 2, 20, 2, hi);
+        RB.wrect(x + 7, NEAR + 1, 16, 8, RB.shade(c, 0.04));       // cover
+        RB.wrect(x + 5, NEAR + 11, 20, 1, lo);
+        RB.wrect(x + 5, NEAR + 26, 20, 2, lo);                     // tray seam
+        RB.wrect(x + 5, NEAR + 28, 20, 1, RB.shade(c, 0.10));
+        RB.wrect(x + 7, NEAR + 36, 16, 10, RB.shade(c, -0.20));    // seat pocket
+        RB.wrect(x + 7, NEAR + 36, 16, 1, RB.shade(c, 0.12));
+        RB.wrect(x + 28, NEAR - 2, 2, h + 2, seam);
       }
-      RB.ctx.globalAlpha = 0.22;
-      RB.wrect(x0, NEAR, w, 4, '#0b0d14');
+      RB.ctx.globalAlpha = 0.26;
+      RB.wrect(x0, NEAR - 2, w, 3, '#0b0d14');
       RB.ctx.globalAlpha = 1;
     }
 
