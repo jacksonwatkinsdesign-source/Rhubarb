@@ -8,6 +8,7 @@ const SHOTS = [
   // [name, scene, frames to advance before shooting, setup fn source]
   ['00-title',      'title',    120,  null],
   ['01-curb-arrive','curb',     420,  null],
+  ['01b-van',      'curb',     900,  null],
   ['02-curb-bag',   'curb',     1500, null],
   ['03-checkin',    'checkin',  90,   `RB.state.hasBag=true;RB.scene.p().x=280;`],
   ['04-security',   'security', 260,  `RB.scene.p().x=290;`],

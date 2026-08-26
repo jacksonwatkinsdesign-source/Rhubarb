@@ -2268,45 +2268,115 @@
       if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, 54, 'A  enter');
     };
 
+    // A van, nose to the left, because it arrives and leaves heading left.
+    // The old one had its roof over the front half and its wheels as flat
+    // rectangles bolted under a car-height body, which is why it read as
+    // backwards: a van is a tall box with a short bonnet, not a long bonnet
+    // with a cabin behind it.
     function drawVan(v, open) {
       var x = Math.round(v.x), y = Math.round(v.y);
-      if (x > RB.W + 90 || x < -100) return;
-      var body = '#3d4a63', dark = '#26304a', glass = '#141c30';
+      if (x > RB.W + 100 || x < -110) return;
 
-      RB.ctx.fillStyle = 'rgba(0,0,0,0.32)';
-      RB.ctx.fillRect(x - 2, y + 30, 82, 4);
-      // Headlight throw down the road.
+      var body = '#3d4a63';
+      var light = RB.shade(body, 0.20);
+      var mid = RB.shade(body, -0.18);
+      var dark = RB.shade(body, -0.42);
+      var glass = '#161e34';
+      var glassHi = '#26314e';
+
+      // Ground shadow and the pool the headlamps throw down the road.
+      RB.ctx.fillStyle = 'rgba(0,0,0,0.34)';
+      RB.ctx.fillRect(x + 2, y + 36, 78, 4);
       RB.ctx.globalAlpha = 0.09;
-      RB.rect(x - 48, y + 14, 50, 14, P.warm4);
+      RB.rect(x - 52, y + 16, 54, 16, P.warm4);
       RB.ctx.globalAlpha = 0.05;
-      RB.rect(x - 78, y + 16, 34, 11, P.warm4);
+      RB.rect(x - 84, y + 18, 36, 12, P.warm4);
       RB.ctx.globalAlpha = 1;
 
-      RB.rect(x + 2, y + 1, 56, 7, body);           // roof
-      RB.rect(x + 2, y + 1, 56, 1, RB.shade(body, 0.3));
-      RB.rect(x, y + 7, 78, 22, body);
-      RB.rect(x, y + 7, 78, 1, RB.shade(body, 0.18));
-      RB.rect(x + 4, y + 3, 20, 10, glass);         // windscreen
-      RB.rect(x + 28, y + 3, 16, 10, open > 0.5 ? '#c9b184' : glass);
-      RB.rect(x + 48, y + 3, 14, 10, glass);
-      RB.rect(x, y + 25, 78, 4, dark);
-      RB.rect(x, y + 7, 1, 22, RB.shade(body, -0.35));
+      // Bonnet: short, low, ahead of the cab.
+      RB.rect(x + 1, y + 13, 13, 18, mid);
+      RB.rect(x + 1, y + 13, 13, 1, light);
+      RB.rect(x, y + 16, 2, 12, dark);
 
+      // Main box.
+      RB.rect(x + 8, y + 1, 72, 30, body);
+      RB.rect(x + 8, y + 1, 72, 2, light);          // roofline
+      RB.rect(x + 8, y + 29, 72, 2, dark);
+      RB.rect(x + 78, y + 1, 2, 30, dark);          // rear face
+
+      // Windscreen, stepped so it reads as raked.
+      RB.rect(x + 11, y + 6, 3, 10, glass);
+      RB.rect(x + 12, y + 5, 4, 11, glass);
+      RB.rect(x + 15, y + 4, 6, 12, glass);
+      RB.rect(x + 15, y + 4, 6, 1, glassHi);
+
+      // Side glass: door, then two rear lights.
+      RB.rect(x + 25, y + 4, 15, 12, glass);
+      RB.rect(x + 25, y + 4, 15, 1, glassHi);
+      RB.rect(x + 45, y + 4, 14, 12, glass);
+      RB.rect(x + 45, y + 4, 14, 1, glassHi);
+      RB.rect(x + 63, y + 4, 14, 12, glass);
+      RB.rect(x + 63, y + 4, 14, 1, glassHi);
+
+      // Belt line and lower panel.
+      RB.rect(x + 8, y + 17, 72, 1, light);
+      RB.rect(x + 8, y + 18, 72, 1, dark);
+      RB.rect(x + 8, y + 27, 72, 2, mid);
+
+      // Door shut lines.
+      RB.rect(x + 23, y + 3, 1, 26, dark);
+      RB.rect(x + 42, y + 3, 1, 26, dark);
+
+      // The sliding door, open.
       if (open > 0.02) {
-        var w = Math.round(2 + open * 13);
-        RB.rect(x + 28, y + 7, w, 22, RB.shade(body, -0.28));
-        RB.rect(x + 28, y + 7, 1, 22, P.black);
+        var ow = Math.round(open * 17);
+        RB.rect(x + 25, y + 3, ow, 26, '#14161f');                 // aperture
+        if (ow > 3) {
+          // A dim interior with the dome light on, not a lit panel: glow at
+          // the roof, seat back below, floor catching a little of it.
+          RB.rect(x + 26, y + 4, ow - 2, 2, '#b09468');
+          RB.rect(x + 26, y + 6, ow - 2, 4, '#6d5c3e');
+          RB.rect(x + 27, y + 12, ow - 4, 13, '#2b2b36');
+          RB.rect(x + 27, y + 12, ow - 4, 1, '#3d3d4c');
+          RB.rect(x + 26, y + 26, ow - 2, 3, '#4a4130');
+        }
+        RB.rect(x + 25 + ow, y + 2, 2, 28, dark);                  // leading edge
         RB.ctx.globalAlpha = 0.13 * open;
-        RB.rect(x + 20, y + 24, 30, 12, P.warm4);
+        RB.rect(x + 18, y + 28, 32, 14, P.warm4);                  // spill
         RB.ctx.globalAlpha = 1;
       }
 
-      RB.rect(x + 8, y + 27, 13, 7, P.black);
-      RB.rect(x + 57, y + 27, 13, 7, P.black);
-      RB.rect(x + 10, y + 28, 9, 5, '#333c52');
-      RB.rect(x + 59, y + 28, 9, 5, '#333c52');
-      RB.rect(x - 2, y + 15, 3, 5, '#f4e6b8');      // headlamp
-      RB.rect(x + 77, y + 15, 2, 4, P.red);
+      // Arches, then wheels sitting in them.
+      arch(x + 20, y + 31, 10);
+      arch(x + 64, y + 31, 10);
+      wheel(x + 20, y + 31, 7);
+      wheel(x + 64, y + 31, 7);
+
+      // Lamps.
+      RB.rect(x, y + 17, 4, 5, '#f4e6b8');
+      RB.rect(x + 1, y + 23, 3, 4, mid);            // grille
+      RB.rect(x + 78, y + 17, 2, 5, P.red);
+
+      function arch(cx, cy, r) {
+        for (var dy = -r; dy <= 0; dy++) {
+          var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
+          if (half <= 0) continue;
+          RB.rect(cx - half, cy + dy, half * 2, 1, dark);
+        }
+      }
+      function wheel(cx, cy, r) {
+        disc(cx, cy, r, '#14141c');
+        disc(cx, cy, r - 3, '#39425a');
+        disc(cx, cy, r - 5, '#1d2334');
+      }
+      function disc(cx, cy, r, c) {
+        if (r <= 0) return;
+        for (var dy = -r; dy <= r; dy++) {
+          var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
+          if (half <= 0) continue;
+          RB.rect(cx - half, cy + dy, half * 2, 1, c);
+        }
+      }
     }
 
     return s;
