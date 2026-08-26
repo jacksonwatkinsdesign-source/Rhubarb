@@ -338,7 +338,7 @@
       // Anything you carried aboard sits on the ledge, steaming.
       var cups = RB.state.cupsHeld || 0;
       for (var c = 0; c < cups; c++) {
-        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
+        RB.sillCup(wx + 10 + c * 21, wy + wh + 13, s.t + c * 1.7);
       }
     };
 
@@ -607,21 +607,28 @@
 
       // Quarter of the way in, halfway, three-quarters.
       service = new RB.Script(function* () {
-        var accepted = false;
+        var accepted = false, take = 0;
+        var TAKES = ['Cream and sugar.', 'Cream, no sugar.', 'Black.'];
 
         yield RB.waitFor(function () { return s.t > 30; });
         yield RB.call(function () { RB.audio.sfx.tick(); });
         yield arrive();
         var pick = yield RB.choose('Coffee, sir?', 'Attendant', ['Yes, please.', 'No, thank you.']);
         accepted = pick === 0;
-        yield RB.say(accepted ? ['Of course.'] : ['Certainly, sir.'], 'Attendant');
+        if (accepted) {
+          take = yield RB.choose('Cream or sugar?', 'Attendant',
+                                 ['Both, please.', 'Just cream.', 'Black is fine.']);
+          yield RB.say(['Of course.'], 'Attendant');
+        } else {
+          yield RB.say(['Certainly, sir.'], 'Attendant');
+        }
         yield leave();
 
         if (accepted) {
           yield RB.waitFor(function () { return s.t > 62; });
           yield RB.call(function () { att.tray = true; });
           yield arrive();
-          yield RB.say(['Your coffee, sir.'], 'Attendant');
+          yield RB.say(['Your coffee, sir. ' + TAKES[take]], 'Attendant');
           yield RB.call(function () {
             RB.state.cupsHeld = (RB.state.cupsHeld || 0) + 1;
             att.tray = false;
@@ -743,7 +750,7 @@
       // when she collects it.
       var cups = RB.state.cupsHeld || 0;
       for (var c = 0; c < cups; c++) {
-        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
+        RB.sillCup(wx + 10 + c * 21, wy + wh + 13, s.t + c * 1.7);
       }
 
       // The attendant, leaning into your view from the aisle. Drawn after the

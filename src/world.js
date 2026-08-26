@@ -595,16 +595,31 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  RB.cupPal = {
+    t: '#241c28',
+    l: '#2b2430', L: '#4c4254',
+    c: '#e8e2d4', C: '#b2aa9c', H: '#f8f4ea',
+    s: '#a87848', S: '#7a5430', B: '#c89660'
+  };
+
   // A cup at rest with steam curling off it. Three wisps on different
   // phases, drifting up and sideways and fading as they rise.
+  // x,y is where the cup STANDS — its base — so callers position it on the
+  // ledge rather than guessing at a top-left corner.
   RB.sillCup = function (x, y, t) {
-    RB.drawSprite(RB.sprites.cup, x, y, RB.cast.you);
-    for (var i = 0; i < 3; i++) {
-      var k = ((t * 0.55 + i * 0.34) % 1);
-      var sy = y - 1 - k * 11;
-      var sx = x + 3 + Math.sin(t * 1.7 + i * 2.2 + k * 3) * 2.2;
-      RB.ctx.globalAlpha = (1 - k) * 0.34;
-      RB.rect(sx, sy, 1, 2, P.white);
+    var h = RB.sprites.bigcup.length;
+    RB.drawSprite(RB.sprites.bigcup, x, y - h, RB.cupPal);
+    // Steam scaled to match: taller, wider, slower.
+    for (var i = 0; i < 4; i++) {
+      var k = ((t * 0.34 + i * 0.25) % 1);
+      var sy = y - h - 2 - k * 26;
+      var sx = x + 5 + Math.sin(t * 1.2 + i * 1.9 + k * 3.4) * 4.5;
+      var fade = (1 - k) * (1 - k);
+      RB.ctx.globalAlpha = fade * 0.70;
+      RB.rect(sx, sy, 2, 4, P.white);
+      RB.ctx.globalAlpha = fade * 0.40;
+      RB.rect(sx - 1, sy + 1, 1, 3, P.white);
+      RB.rect(sx + 2, sy + 2, 1, 2, P.white);
       RB.ctx.globalAlpha = 1;
     }
   };

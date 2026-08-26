@@ -23,7 +23,7 @@ const SHOTS = [
   ['12b-away',      'takeoff',  4500, null],
   ['12c-layer',     'takeoff',  5100, null],
   ['13-sunrise-a',  'sunrise',  900,  null],
-  ['13b-offer',     'sunrise',  1950, `RB.state.cupsHeld=1;`],
+  ['13b-offer',     'sunrise',  1950, 'RB.state.cupsHeld=1;window.__noAuto=true;'],
   ['13c-serve',     'sunrise',  3900, `RB.state.cupsHeld=1;`],
   ['13d-collect',   'sunrise',  5850, `RB.state.cupsHeld=2;`],
   ['14-sunrise-b',  'sunrise',  2600, null],
@@ -59,6 +59,7 @@ const SHOTS = [
     const res = await page.evaluate(({ scene, frames, setup }) => {
       const err = [];
       try {
+        window.__noAuto = false;
         RB.now = 0;
         RB.fade.v = 0;
         RB.enterScene(scene);
@@ -68,7 +69,10 @@ const SHOTS = [
         for (let i = 0; i < frames; i++) {
           // Answer the chooser and tap through dialogue, so beats after a
           // question can be captured at all.
-          RB.input.action = (RB.chooser.active() || RB.dialog.active()) ? (press = !press) : false;
+          // Answer questions and tap through dialogue, unless a shot wants to
+          // photograph one of them.
+          RB.input.action = (!window.__noAuto && (RB.chooser.active() || RB.dialog.active()))
+            ? (press = !press) : false;
           RB.now += dt;
           RB.updateTransition(dt);
           RB.dialog.update(dt);

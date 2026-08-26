@@ -169,6 +169,40 @@
     '..ttt..'
   ];
 
+  // -------------------------------------------------------------- big cup
+  // The window scenes are a close-up: the pane fills most of the screen, so a
+  // cup on that ledge is a foreground object, not a 7px world prop. This one
+  // is drawn to the window's scale and partly occludes it, the way a cup on a
+  // real sill does.
+  var BIGCUP = [
+    '...tttttttt...',
+    '..tLLLLLLLLt..',
+    '.tLLLLLLLLLLt.',
+    '.tllllllllllt.',
+    'tllllllllllllt',
+    'tttttttttttttt',
+    '.tcccccccccct.',
+    '.tHccccccccCt.',
+    '.tHccccccccCt.',
+    '.tHccccccccCt.',
+    '.tcccccccccct.',
+    '.tBBBBBBBBBBt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tSSSSSSSSSSt.',
+    '.tcccccccccct.',
+    '.tHccccccccCt.',
+    '.tHccccccccCt.',
+    '..tcccccccCt..',
+    '..tHccccccCt..',
+    '...tccccccCt..',
+    '...tttttttt...',
+    '....tttttt....'
+  ];
+
   // Validate rather than silently pad: a sheared sprite is very hard to spot
   // by eye and very easy to introduce by miscounting one row.
   var errors = [];
@@ -191,6 +225,7 @@
   var SIDE = { 0: check('side0', S0, W, H), 1: check('side1', S1, W, H), 2: check('side2', S2, W, H) };
   var BAG_F = check('bag', BAG, 10, 14);
   var CUP_F = check('cup', CUP, 7, 9);
+  var BIGCUP_F = check('bigcup', BIGCUP, 14, 26);
 
   // Seated poses are derived from the standing idle so they can never drift
   // out of sync with it: drop two rows in, fold the legs at the bottom.
@@ -207,7 +242,7 @@
 
   RB.sprites = {
     down: DOWN, up: UP, side: SIDE,
-    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F,
+    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F, bigcup: BIGCUP_F,
     W: W, H: H
   };
 

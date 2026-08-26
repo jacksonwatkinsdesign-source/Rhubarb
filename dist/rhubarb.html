@@ -854,6 +854,40 @@
     '..ttt..'
   ];
 
+  // -------------------------------------------------------------- big cup
+  // The window scenes are a close-up: the pane fills most of the screen, so a
+  // cup on that ledge is a foreground object, not a 7px world prop. This one
+  // is drawn to the window's scale and partly occludes it, the way a cup on a
+  // real sill does.
+  var BIGCUP = [
+    '...tttttttt...',
+    '..tLLLLLLLLt..',
+    '.tLLLLLLLLLLt.',
+    '.tllllllllllt.',
+    'tllllllllllllt',
+    'tttttttttttttt',
+    '.tcccccccccct.',
+    '.tHccccccccCt.',
+    '.tHccccccccCt.',
+    '.tHccccccccCt.',
+    '.tcccccccccct.',
+    '.tBBBBBBBBBBt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tssssssssSSt.',
+    '.tSSSSSSSSSSt.',
+    '.tcccccccccct.',
+    '.tHccccccccCt.',
+    '.tHccccccccCt.',
+    '..tcccccccCt..',
+    '..tHccccccCt..',
+    '...tccccccCt..',
+    '...tttttttt...',
+    '....tttttt....'
+  ];
+
   // Validate rather than silently pad: a sheared sprite is very hard to spot
   // by eye and very easy to introduce by miscounting one row.
   var errors = [];
@@ -876,6 +910,7 @@
   var SIDE = { 0: check('side0', S0, W, H), 1: check('side1', S1, W, H), 2: check('side2', S2, W, H) };
   var BAG_F = check('bag', BAG, 10, 14);
   var CUP_F = check('cup', CUP, 7, 9);
+  var BIGCUP_F = check('bigcup', BIGCUP, 14, 26);
 
   // Seated poses are derived from the standing idle so they can never drift
   // out of sync with it: drop two rows in, fold the legs at the bottom.
@@ -892,7 +927,7 @@
 
   RB.sprites = {
     down: DOWN, up: UP, side: SIDE,
-    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F,
+    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F, bigcup: BIGCUP_F,
     W: W, H: H
   };
 
@@ -1902,16 +1937,31 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  RB.cupPal = {
+    t: '#241c28',
+    l: '#2b2430', L: '#4c4254',
+    c: '#e8e2d4', C: '#b2aa9c', H: '#f8f4ea',
+    s: '#a87848', S: '#7a5430', B: '#c89660'
+  };
+
   // A cup at rest with steam curling off it. Three wisps on different
   // phases, drifting up and sideways and fading as they rise.
+  // x,y is where the cup STANDS — its base — so callers position it on the
+  // ledge rather than guessing at a top-left corner.
   RB.sillCup = function (x, y, t) {
-    RB.drawSprite(RB.sprites.cup, x, y, RB.cast.you);
-    for (var i = 0; i < 3; i++) {
-      var k = ((t * 0.55 + i * 0.34) % 1);
-      var sy = y - 1 - k * 11;
-      var sx = x + 3 + Math.sin(t * 1.7 + i * 2.2 + k * 3) * 2.2;
-      RB.ctx.globalAlpha = (1 - k) * 0.34;
-      RB.rect(sx, sy, 1, 2, P.white);
+    var h = RB.sprites.bigcup.length;
+    RB.drawSprite(RB.sprites.bigcup, x, y - h, RB.cupPal);
+    // Steam scaled to match: taller, wider, slower.
+    for (var i = 0; i < 4; i++) {
+      var k = ((t * 0.34 + i * 0.25) % 1);
+      var sy = y - h - 2 - k * 26;
+      var sx = x + 5 + Math.sin(t * 1.2 + i * 1.9 + k * 3.4) * 4.5;
+      var fade = (1 - k) * (1 - k);
+      RB.ctx.globalAlpha = fade * 0.70;
+      RB.rect(sx, sy, 2, 4, P.white);
+      RB.ctx.globalAlpha = fade * 0.40;
+      RB.rect(sx - 1, sy + 1, 1, 3, P.white);
+      RB.rect(sx + 2, sy + 2, 1, 2, P.white);
       RB.ctx.globalAlpha = 1;
     }
   };
@@ -3412,7 +3462,7 @@
       // Anything you carried aboard sits on the ledge, steaming.
       var cups = RB.state.cupsHeld || 0;
       for (var c = 0; c < cups; c++) {
-        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
+        RB.sillCup(wx + 10 + c * 21, wy + wh + 13, s.t + c * 1.7);
       }
     };
 
@@ -3681,21 +3731,28 @@
 
       // Quarter of the way in, halfway, three-quarters.
       service = new RB.Script(function* () {
-        var accepted = false;
+        var accepted = false, take = 0;
+        var TAKES = ['Cream and sugar.', 'Cream, no sugar.', 'Black.'];
 
         yield RB.waitFor(function () { return s.t > 30; });
         yield RB.call(function () { RB.audio.sfx.tick(); });
         yield arrive();
         var pick = yield RB.choose('Coffee, sir?', 'Attendant', ['Yes, please.', 'No, thank you.']);
         accepted = pick === 0;
-        yield RB.say(accepted ? ['Of course.'] : ['Certainly, sir.'], 'Attendant');
+        if (accepted) {
+          take = yield RB.choose('Cream or sugar?', 'Attendant',
+                                 ['Both, please.', 'Just cream.', 'Black is fine.']);
+          yield RB.say(['Of course.'], 'Attendant');
+        } else {
+          yield RB.say(['Certainly, sir.'], 'Attendant');
+        }
         yield leave();
 
         if (accepted) {
           yield RB.waitFor(function () { return s.t > 62; });
           yield RB.call(function () { att.tray = true; });
           yield arrive();
-          yield RB.say(['Your coffee, sir.'], 'Attendant');
+          yield RB.say(['Your coffee, sir. ' + TAKES[take]], 'Attendant');
           yield RB.call(function () {
             RB.state.cupsHeld = (RB.state.cupsHeld || 0) + 1;
             att.tray = false;
@@ -3817,7 +3874,7 @@
       // when she collects it.
       var cups = RB.state.cupsHeld || 0;
       for (var c = 0; c < cups; c++) {
-        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
+        RB.sillCup(wx + 10 + c * 21, wy + wh + 13, s.t + c * 1.7);
       }
 
       // The attendant, leaning into your view from the aisle. Drawn after the
