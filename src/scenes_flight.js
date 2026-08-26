@@ -161,7 +161,7 @@
       // of the frame and put the player inside the tube rather than beside it.
       nearBacks(x0, w);
 
-      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'Z  sit');
+      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'A  sit');
     };
 
     // Seat fabric, three tones plus a seam. Seats are drawn in profile: the
@@ -445,7 +445,7 @@
       var sun = '#f4d08a';
       var top   = RB.mix('#d6dde8', sun, warm * warmAmt);
       var mid   = RB.mix('#b9c2d1', sun, warm * warmAmt * 0.7);
-      var under = RB.mix('#828da4', sun, warm * warmAmt * 0.35);
+      var under = RB.mix('#5f6a80', sun, warm * warmAmt * 0.30);
       var hi    = RB.mix('#eef2f8', sun, warm * warmAmt);
 
       RB.ctx.save();
@@ -453,31 +453,46 @@
       RB.ctx.rotate((tiltDeg * Math.PI) / 180);
       RB.ctx.translate(-(wx + ww * 0.5), -baseY);
 
-      var n = 90;
+      // The root is the widest part of a wing and it runs into the fuselage,
+      // which is below and behind you — so it starts off the left edge of the
+      // frame at full chord and tapers away to the tip. Drawn starting inside
+      // the window it read as a thin plank floating in mid-air.
+      // Root low and left, running off the bottom of the frame into the body;
+      // tip small and high, out toward the horizon. Sloping it the other way
+      // sent the tip off the bottom of the window and buried the ground.
+      var X0 = wx - ww * 0.18, SPAN = ww * 1.14;
+      var ROOT = 34, TIP = 6;
+      function chord(t) { return TIP + (ROOT - TIP) * Math.pow(1 - t, 1.35); }
+      function wingY(t) { return baseY + 20 - t * 32; }
+
+      var n = 120;
       for (var i = 0; i < n; i++) {
         var t = i / (n - 1);
-        var x = wx + ww * 0.16 + t * ww * 0.95;
-        var y = baseY + t * 30;
-        var thick = 19 - t * 14;
+        var x = X0 + t * SPAN;
+        var y = wingY(t);
+        var thick = chord(t);
         RB.rect(x, y, 3, thick, mid);
-        RB.rect(x, y, 3, Math.max(1, thick * 0.45), top);
+        RB.rect(x, y, 3, Math.max(1, thick * 0.42), top);
         RB.rect(x, y, 3, 1, hi);                          // leading edge
-        RB.rect(x, y + thick - 2, 3, 2, under);           // trailing edge
-        // Slat break just aft of the leading edge.
+        RB.rect(x, y + thick - 3, 3, 3, under);           // trailing edge
         if (i % 2 === 0) RB.rect(x, y + 2, 3, 1, RB.mix(mid, under, 0.5));
       }
+      // Root fairing where the wing meets the body, filling the corner.
+      RB.rect(X0 - 6, wingY(0) + 4, 14, ROOT + 12, RB.mix(mid, under, 0.35));
+      RB.rect(X0 - 6, wingY(0) + 4, 14, 2, top);
       // Flap-track fairings hanging off the trailing edge.
-      [0.26, 0.52].forEach(function (ft) {
-        var fx = wx + ww * 0.16 + ft * ww * 0.95;
-        var fy = baseY + ft * 30 + (19 - ft * 14) - 2;
-        RB.rect(fx, fy, 12, 5, under);
-        RB.rect(fx + 10, fy + 1, 6, 3, RB.shade(under, -0.2));
+      [0.20, 0.42, 0.62].forEach(function (ft) {
+        var fx = X0 + ft * SPAN;
+        var fy = wingY(ft) + chord(ft) - 3;
+        var fw = 16 - ft * 7;
+        RB.rect(fx, fy, fw, 6 - ft * 2, under);
+        RB.rect(fx + fw - 3, fy + 1, 7 - ft * 3, 3, RB.shade(under, -0.2));
       });
       // Winglet turning up at the tip.
-      var tx = wx + ww * 0.16 + ww * 0.95, ty = baseY + 30;
-      RB.rect(tx, ty - 10, 3, 14, mid);
-      RB.rect(tx, ty - 10, 3, 2, hi);
-      if (Math.floor(RB.now * 1.4) % 2 === 0) RB.rect(tx, ty - 13, 3, 3, P.green);
+      var tx = X0 + SPAN, ty = wingY(1);
+      RB.rect(tx, ty - 9, 3, 12, mid);
+      RB.rect(tx, ty - 9, 3, 2, hi);
+      if (Math.floor(RB.now * 1.4) % 2 === 0) RB.rect(tx, ty - 12, 3, 3, P.green);
       RB.ctx.restore();
     }
     s.wingAt = wingAt;

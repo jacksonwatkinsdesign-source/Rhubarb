@@ -37,7 +37,7 @@ const html = `<title>Rhubarb</title>
   @media (prefers-reduced-motion: reduce) { #hint { transition: none; } }
 </style>
 <canvas id="screen"></canvas>
-<div id="hint">click, then press <b>Z</b> &nbsp;·&nbsp; arrows or WASD to walk &nbsp;·&nbsp; hold shift to slow down</div>
+<div id="hint">click, then press <b>Z</b> (A) &nbsp;·&nbsp; arrows to walk &nbsp;·&nbsp; X is B &nbsp;·&nbsp; shift to slow down</div>
 <script>
 ${js}
 RB.boot(document.getElementById('screen'));
@@ -46,7 +46,7 @@ RB.boot(document.getElementById('screen'));
   // get out of the way the moment the player has read it.
   var hint = document.getElementById('hint');
   if (RB.touchControlsVisible && RB.touchControlsVisible()) {
-    hint.innerHTML = 'tap <b>Z</b> to begin &nbsp;·&nbsp; d-pad to walk';
+    hint.innerHTML = 'tap <b>A</b> to begin &nbsp;·&nbsp; d-pad to walk';
   }
   function go() {
     if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }

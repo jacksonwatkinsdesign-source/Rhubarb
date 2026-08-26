@@ -65,6 +65,7 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
       // Decide input for this frame.
       RB.input.left = RB.input.right = RB.input.up = RB.input.down = false;
       RB.input.action = false;
+      RB.input.b = false;
 
       const g = RB.scene.dbg && RB.scene.dbg();
       // Dialogue is always handled first: any branch that walks instead of
@@ -72,6 +73,10 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
       if (RB.dialog.active() || RB.chooser.active()) {
         press = !press;
         RB.input.action = press;            // tap to advance / accept
+      } else if (g && g.needsSip) {
+        // Sit and drink: tap B on a cadence, the way a person would.
+        press = !press;
+        RB.input.b = press;
       } else if (g && g.seated && !g.boardingCalled) {
         // Seated at the gate with the aeroplane not in yet: do nothing at all,
         // which is the entire intended activity.

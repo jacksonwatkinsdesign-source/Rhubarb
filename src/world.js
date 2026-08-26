@@ -595,11 +595,32 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  // Covers both cup sprites: the big one uses l/L/c/C/H/s/S, the small one
+  // uses b/B/w. A key missing here renders as magenta, so keep them together.
   RB.cupPal = {
     t: '#241c28',
     l: '#2b2430', L: '#4c4254',
     c: '#e8e2d4', C: '#b2aa9c', H: '#f8f4ea',
-    s: '#a87848', S: '#7a5430', B: '#c89660'
+    s: '#a87848', S: '#7a5430',
+    b: '#2b2430', B: '#c89660', w: '#e8e2d4'
+  };
+
+  // How much is left, shown beside you while you drink it. Small, cornered
+  // like the action prompt, and only on screen while it is relevant.
+  RB.cupGauge = function (sx, sy, level) {
+    var x = Math.round(sx), y = Math.round(sy);
+    RB.rect(x, y, 24, 14, 'rgba(11,13,20,0.86)');
+    RB.rect(x, y, 24, 1, P.steel1);
+    RB.rect(x, y + 13, 24, 1, P.steel1);
+    RB.rect(x, y, 1, 14, P.steel1);
+    RB.rect(x + 23, y, 1, 14, P.steel1);
+    // drawSprite works in world space, so add the camera back for it.
+    RB.drawSprite(RB.sprites.cup, x + 2 + RB.cam.x, y + 3, RB.cupPal);
+    var full = 8;
+    RB.rect(x + 12, y + 3, 9, full, '#241c28');
+    var h = Math.max(0, Math.round(level * (full - 2)));
+    RB.rect(x + 13, y + 4 + (full - 2 - h), 7, h, '#8a5a34');
+    RB.rect(x + 13, y + 4 + (full - 2 - h), 7, 1, '#b07a48');
   };
 
   // A cup at rest with steam curling off it. Three wisps on different

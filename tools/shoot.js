@@ -13,7 +13,7 @@ const SHOTS = [
   ['04-security',   'security', 260,  `RB.scene.p().x=290;`],
   ['04b-coffee',    'coffee',   200,  `RB.scene.p().x=272;`],
   ['05-concourse',  'gate',     120,  `RB.scene.p().x=180;`],
-  ['06-gate-wait',  'gate',     600,  `RB.scene.p().x=598;RB.scene.sitNow();`],
+  ['06-gate-wait',  'gate',     600,  'RB.state.hasCoffee=true;RB.state.cupLevel=0.75;RB.scene.p().cup=true;RB.scene.p().x=598;RB.scene.sitNow();'],
   ['07-gate-plane', 'gate',     1700, `RB.scene.p().x=598;RB.scene.sitNow();`],
   ['08-jetbridge',  'jetbridge',150,  `RB.scene.p().x=300;`],
   ['09-cabin',      'cabin',    120,  `RB.scene.p().x=300;`],

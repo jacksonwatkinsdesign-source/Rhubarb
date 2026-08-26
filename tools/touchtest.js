@@ -43,7 +43,7 @@ const path = require('path');
 
   const visible = await page.evaluate(() => RB.touchControlsVisible());
   const geom = await page.evaluate(() => {
-    const pad = window.__t.rect('#rb-pad'), btn = window.__t.rect('#rb-btn');
+    const pad = window.__t.rect('#rb-pad'), btn = window.__t.rect('#rb-a');
     const canvas = document.querySelector('canvas').getBoundingClientRect();
     return { pad, btn, inset: RB.uiInset, canvasH: canvas.height, vh: window.innerHeight };
   });
@@ -63,9 +63,9 @@ const path = require('path');
   // Press the button to leave the title screen. The title ignores input for
   // its first moments, so give it a beat.
   await page.waitForTimeout(1400);
-  await page.evaluate(() => { const b = window.__t.rect('#rb-btn'); window.__t.fire('touchstart', 1, b.cx, b.cy); });
+  await page.evaluate(() => { const b = window.__t.rect('#rb-a'); window.__t.fire('touchstart', 1, b.cx, b.cy); });
   await page.waitForTimeout(220);
-  await page.evaluate(() => { const b = window.__t.rect('#rb-btn'); window.__t.fire('touchend', 1, b.cx, b.cy); });
+  await page.evaluate(() => { const b = window.__t.rect('#rb-a'); window.__t.fire('touchend', 1, b.cx, b.cy); });
   await page.waitForTimeout(2600);          // the title fades out over 2s
   console.log('after button tap, scene =', await page.evaluate(() => RB.scene.id));
 
@@ -97,9 +97,19 @@ const path = require('path');
   // Diagonal: slide the same touch down-right, and press the button at once.
   await page.evaluate(() => { const p = window.__t.rect('#rb-pad');
     window.__t.fire('touchmove', 2, p.cx + p.w * 0.30, p.cy + p.h * 0.30);
-    const b = window.__t.rect('#rb-btn'); window.__t.fire('touchstart', 3, b.cx, b.cy); });
+    const b = window.__t.rect('#rb-a'); window.__t.fire('touchstart', 3, b.cx, b.cy); });
   await page.waitForTimeout(120);
   const multi = await page.evaluate(() => ({ right: RB.input.right, down: RB.input.down, action: RB.input.action }));
+
+  // B, and A+B together.
+  await page.evaluate(() => {
+    const b = window.__t.rect('#rb-b');
+    window.__t.fire('touchstart', 4, b.cx, b.cy);
+  });
+  await page.waitForTimeout(120);
+  const bOnly = await page.evaluate(() => ({ b: RB.input.b, action: RB.input.action,
+    lit: document.querySelector('#rb-b').classList.contains('hit') }));
+  await page.evaluate(() => { window.__t.fire('touchend', 4, 0, 0); });
 
   await page.evaluate(() => { window.__t.fire('touchend', 2, 0, 0); window.__t.fire('touchend', 3, 0, 0); });
   await page.waitForTimeout(150);
@@ -107,7 +117,8 @@ const path = require('path');
 
   console.log('hold right:  x ' + Math.round(before) + ' -> ' + Math.round(held.x) +
               '   input.right=' + held.right + '   arm highlighted=' + held.armLit);
-  console.log('diagonal + button held together:', JSON.stringify(multi));
+  console.log('diagonal + A held together:', JSON.stringify(multi));
+  console.log('B button:', JSON.stringify(bOnly));
   console.log('after release:', JSON.stringify(released));
   console.log(errs.length ? errs.slice(0, 8).join('\n') : 'no runtime errors');
 

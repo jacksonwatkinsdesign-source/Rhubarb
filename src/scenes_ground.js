@@ -57,6 +57,7 @@
       RB.state.hasBag = false;
       RB.state.hasCoffee = false;
       RB.state.cupsHeld = 0;
+      RB.state.cupLevel = 1;
 
       van = { x: 300, y: VAN_Y };
       s.doorOpen = 0;
@@ -209,7 +210,7 @@
 
       drawVan(van, s.doorOpen);
 
-      if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, 54, 'Z  enter');
+      if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, 54, 'A  enter');
     };
 
     function drawVan(v, open) {
@@ -394,8 +395,8 @@
       RB.ctx.globalAlpha = 1;
 
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(DESK_X + 6, WALL - 26, 'Z  check bag');
-        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 60, 'Z  security');
+        if (s.prompt) RB.drawPrompt(DESK_X + 6, WALL - 26, 'A  check bag');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 60, 'A  security');
       }
     };
 
@@ -568,8 +569,8 @@
       }
 
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(SERVE_X + 6, WALL - 44, 'Z  passport');
-        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
+        if (s.prompt) RB.drawPrompt(SERVE_X + 6, WALL - 44, 'A  passport');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'A  to the gates');
       }
     };
 
@@ -634,6 +635,7 @@
           yield RB.call(function () {
             bought = true;
             RB.state.hasCoffee = true;
+            RB.state.cupLevel = 1;
             player.cup = true;
           });
           yield RB.captionFor('Too hot to drink yet.', 4.2, 128);
@@ -711,8 +713,8 @@
       RB.ctx.globalAlpha = 1;
 
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(KIOSK_X + 6, WALL - 44, 'Z  coffee');
-        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
+        if (s.prompt) RB.drawPrompt(KIOSK_X + 6, WALL - 44, 'A  coffee');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'A  to the gates');
       }
     };
 

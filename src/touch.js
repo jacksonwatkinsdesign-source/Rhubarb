@@ -8,7 +8,7 @@
 (function (RB) {
   'use strict';
 
-  var root = null, pad = null, btn = null, mounted = false;
+  var root = null, pad = null, btn = null, btnB = null, mounted = false;
   var touches = Object.create(null);
 
   // dx/dy octant -> directions. Index 0 is due right, going clockwise.
@@ -36,13 +36,19 @@
     '#rb-pad .rt{top:34%;right:0;height:32%;width:38%;border-radius:0 8px 8px 0;border-left:none;}',
     '#rb-pad .hub{left:30%;top:30%;width:40%;height:40%;border:2px solid #3d4760;}',
     '#rb-pad .arm.hit{background:#3f6ea8;border-color:#5f93d0;}',
-    '#rb-btn{position:relative;width:var(--btn);height:var(--btn);flex:none;border-radius:50%;',
-    '  background:#232a3c;border:3px solid #6b5a34;box-shadow:0 3px 0 #10141f;',
+    // Two keys, offset like a handheld: B low and left, A high and right.
+    '#rb-keys{position:relative;flex:none;display:block;',
+    '  width:calc(var(--btn)*2.15);height:calc(var(--btn)*1.5);}',
+    '.rb-key{position:absolute;width:var(--btn);height:var(--btn);border-radius:50%;',
+    '  background:#232a3c;box-shadow:0 3px 0 #10141f;',
     '  display:flex;align-items:center;justify-content:center;',
     '  font:600 calc(var(--btn)*0.34)/1 ui-monospace,SFMono-Regular,Menlo,monospace;',
-    '  color:#e8a054;letter-spacing:.04em;}',
-    '#rb-btn.hit{background:#4a3a1e;border-color:#e8a054;color:#f4d8a8;transform:translateY(2px);',
-    '  box-shadow:0 1px 0 #10141f;}',
+    '  letter-spacing:.04em;}',
+    '#rb-a{right:0;top:0;border:3px solid #6b5a34;color:#e8a054;}',
+    '#rb-b{left:0;bottom:0;border:3px solid #4a4a68;color:#8fa0bb;}',
+    '.rb-key.hit{transform:translateY(2px);box-shadow:0 1px 0 #10141f;}',
+    '#rb-a.hit{background:#4a3a1e;border-color:#e8a054;color:#f4d8a8;}',
+    '#rb-b.hit{background:#2c3350;border-color:#8fa0bb;color:#dfe6f0;}',
     '@media (prefers-reduced-motion:reduce){#rb-btn{transition:none;}}'
   ].join('\n');
 
@@ -51,7 +57,7 @@
     // a phone and don't become absurd on a 13" tablet.
     var short = Math.min(window.innerWidth, window.innerHeight);
     var padPx = Math.round(Math.max(112, Math.min(168, short * 0.28)));
-    var btnPx = Math.round(Math.max(74, Math.min(118, short * 0.18)));
+    var btnPx = Math.round(Math.max(64, Math.min(104, short * 0.155)));
     return { pad: padPx, btn: btnPx };
   }
 
@@ -81,34 +87,43 @@
         '<div class="arm dn" data-dir="down"></div>' +
         '<div class="arm hub"></div>' +
       '</div>' +
-      '<div id="rb-btn">Z</div>';
+      '<div id="rb-keys">' +
+        '<div class="rb-key" id="rb-b">B</div>' +
+        '<div class="rb-key" id="rb-a">A</div>' +
+      '</div>';
     document.body.appendChild(root);
 
     pad = root.querySelector('#rb-pad');
-    btn = root.querySelector('#rb-btn');
+    btn = root.querySelector('#rb-a');
+    btnB = root.querySelector('#rb-b');
     mounted = true;
   }
 
-  function paint(dirs, action) {
+  function paint(dirs, action, bDown) {
     var arms = pad.querySelectorAll('.arm[data-dir]');
     for (var i = 0; i < arms.length; i++) {
       arms[i].classList.toggle('hit', dirs.indexOf(arms[i].getAttribute('data-dir')) >= 0);
     }
     btn.classList.toggle('hit', action);
+    btnB.classList.toggle('hit', bDown);
   }
 
   // Recompute the whole control state from every touch currently down.
   function apply() {
-    var dirs = [], action = false;
-    var pr = pad.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    var dirs = [], action = false, bDown = false;
+    var pr = pad.getBoundingClientRect();
+    var br = btn.getBoundingClientRect(), br2 = btnB.getBoundingClientRect();
     var pcx = pr.left + pr.width / 2, pcy = pr.top + pr.height / 2;
     var bcx = br.left + br.width / 2, bcy = br.top + br.height / 2;
+    var b2cx = br2.left + br2.width / 2, b2cy = br2.top + br2.height / 2;
 
     for (var id in touches) {
       var t = touches[id];
-      // Button first, with a generous radius — a near miss should still fire.
+      // Buttons first, with a generous radius — a near miss should still fire.
       var bdx = t.x - bcx, bdy = t.y - bcy;
-      if (Math.sqrt(bdx * bdx + bdy * bdy) < br.width * 0.85) { action = true; continue; }
+      if (Math.sqrt(bdx * bdx + bdy * bdy) < br.width * 0.72) { action = true; continue; }
+      var b2dx = t.x - b2cx, b2dy = t.y - b2cy;
+      if (Math.sqrt(b2dx * b2dx + b2dy * b2dy) < br2.width * 0.72) { bDown = true; continue; }
 
       var dx = t.x - pcx, dy = t.y - pcy;
       var dist = Math.sqrt(dx * dx + dy * dy);
@@ -124,7 +139,8 @@
     RB.clearTouch();
     for (var k = 0; k < dirs.length; k++) RB.setTouch(dirs[k], true);
     if (action) RB.setTouch('action', true);
-    paint(dirs, action);
+    if (bDown) RB.setTouch('b', true);
+    paint(dirs, action, bDown);
   }
 
   function track(e) {

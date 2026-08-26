@@ -14,8 +14,9 @@ Open `index.html` in a browser. No build step, no server, no dependencies.
 | | Keyboard | Touch |
 |---|---|---|
 | Walk | Arrow keys or WASD | D-pad (8-way, slide your thumb) |
-| Interact | Z (also Enter / Space / E) | Z button |
-| Choose | Up / down, then Z | D-pad up / down, then Z |
+| A — interact | Z (also Enter / Space / E) | A button |
+| B — sip your coffee | X (also Q) | B button |
+| Choose | Up / down, then A | D-pad up / down, then A |
 | Slow down | Hold Shift | — |
 | Stand up | Any direction | Any direction |
 
@@ -38,7 +39,9 @@ visibly accumulate and visibly go away.
 One playthrough is roughly 8–12 minutes.
 
 There is exactly one mechanic worth knowing: **while you are sitting at the
-gate, time moves faster.** The sky changes, the aircraft taxis in, and boarding
+gate, time moves faster.** If you bought a coffee, half of it has to go before
+the aeroplane comes — press B to sip. Finish the whole cup and you board
+without it; stop at half and you carry it on. The sky changes, the aircraft taxis in, and boarding
 is called. Standing up stops it. It is the only reward loop in the game and it
 points the opposite way to every other game's.
 

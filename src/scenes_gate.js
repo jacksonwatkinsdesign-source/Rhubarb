@@ -73,6 +73,7 @@
     // The whole scene is driven by one clock. Sitting makes it run faster,
     // which is the closest this game comes to having a mechanic.
     var clock, seated, sitBlend, plane, bridge, boardingCalled, seatX;
+    var sipCool, halfShown;
 
     var SEATS = [];
     for (var i = 0; i < 6; i++) SEATS.push(560 + i * 16);
@@ -87,6 +88,9 @@
       sitBlend = 0;
       boardingCalled = false;
       seatX = null;
+      sipCool = 0;
+      halfShown = false;
+      if (RB.state.cupLevel === undefined) RB.state.cupLevel = 1;
       plane = { x: 1180, settled: false };
       bridge = { ext: 0 };
       script = null;
@@ -119,7 +123,10 @@
     s.p = function () { return player; };
     // Read by the playthrough test so it can wait in the chair like a person
     // rather than standing straight back up.
-    s.dbg = function () { return { seated: seated, boardingCalled: boardingCalled, clock: clock }; };
+    s.dbg = function () {
+      return { seated: seated, boardingCalled: boardingCalled, clock: clock,
+               needsSip: seated && RB.state.hasCoffee && RB.state.cupLevel > 0.5 };
+    };
 
     s.sitNow = function () {
       seated = true; player.sitting = true; player.dir = 'down'; player.moving = false;
@@ -168,9 +175,29 @@
         n.a.update(dt);
       });
 
+      // Drinking. Half the cup has to go before the aeroplane comes, which
+      // gives the wait something to do with your hands. The clock fallback
+      // exists so that nursing a full cup can never lock the game.
+      sipCool -= dt;
+      if (seated && RB.state.hasCoffee && sipCool <= 0 && RB.input.pressed('b')) {
+        RB.state.cupLevel = Math.max(0, RB.state.cupLevel - 0.125);
+        sipCool = 0.9;
+        RB.audio.sfx.tick();
+        if (RB.state.cupLevel <= 0) {
+          RB.state.hasCoffee = false;
+          RB.state.cupsHeld = 0;
+          player.cup = false;
+          RB.caption.show('Empty.', 3.2, 128);
+        } else if (RB.state.cupLevel <= 0.5 && !halfShown) {
+          halfShown = true;
+          RB.caption.show('Half of it gone. The sky is changing.', 5.0, 128);
+        }
+      }
+      var drunkEnough = !RB.state.hasCoffee || RB.state.cupLevel <= 0.5;
+
       // --- the arrival, on the clock
       // Taxis in from the right and settles on the stand outside the glass.
-      if (clock > 70 && plane.x > 606) {
+      if (clock > 70 && (drunkEnough || clock > 165) && plane.x > 606) {
         plane.x += (600 - plane.x) * Math.min(1, dt * 0.30);
         if (plane.x < 612) { plane.x = 600; plane.settled = true; }
       }
@@ -334,8 +361,14 @@
       }
 
       if (!RB.dialog.active()) {
-        if (s.seatPrompt !== null && s.seatPrompt !== undefined) RB.drawPrompt(s.seatPrompt + 6, FLOOR - 4, 'Z  sit');
-        else if (s.boardPrompt) RB.drawPrompt(GATE_DOOR + 7, FLOOR - 56, 'Z  board');
+        if (s.seatPrompt !== null && s.seatPrompt !== undefined) RB.drawPrompt(s.seatPrompt + 6, FLOOR - 4, 'A  sit');
+        else if (s.boardPrompt) RB.drawPrompt(GATE_DOOR + 7, FLOOR - 56, 'A  board');
+      }
+      if (seated && RB.state.hasCoffee) {
+        RB.cupGauge(RB.W - 32, 8, RB.state.cupLevel);
+        if (!RB.dialog.active() && s.seatPrompt === null) {
+          RB.drawPrompt(RB.cam.x + RB.W - 20, 24, 'B  sip');
+        }
       }
       if (seated && !boardingCalled && Math.floor(RB.now) % 12 < 1) {
         RB.font.drawCentered('any direction to stand', RB.W / 2, RB.H - 12, 'rgba(179,192,212,0.5)');
@@ -419,7 +452,7 @@
       RB.ctx.globalAlpha = 1;
 
       player.draw(P.warm4, 0.16);
-      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(END_X + 15, 32, 'Z  board');
+      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(END_X + 15, 32, 'A  board');
     };
 
     return s;

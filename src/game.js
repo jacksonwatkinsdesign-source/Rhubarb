@@ -45,11 +45,11 @@
       RB.ctx.globalAlpha = 1;
 
       if (t > 2.0 && Math.floor(t * 1.4) % 2 === 0) {
-        RB.font.drawCentered('press  Z', RB.W / 2, RB.H - 30, '#e8a054', { shadow: 'rgba(8,11,22,0.8)' });
+        RB.font.drawCentered('press  A', RB.W / 2, RB.H - 30, '#e8a054', { shadow: 'rgba(8,11,22,0.8)' });
       }
       if (t > 3.4) {
         RB.ctx.globalAlpha = 0.45;
-        RB.font.drawCentered('arrows / WASD to walk   ·   shift to slow down', RB.W / 2, RB.H - 15, '#8a9bb8');
+        RB.font.drawCentered('arrows to walk   ·   Z is A, X is B   ·   shift to slow down', RB.W / 2, RB.H - 15, '#8a9bb8');
         RB.ctx.globalAlpha = 1;
       }
     };

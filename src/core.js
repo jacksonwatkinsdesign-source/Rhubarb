@@ -161,15 +161,16 @@
     ArrowUp: 'up', KeyW: 'up',
     ArrowDown: 'down', KeyS: 'down',
     KeyZ: 'action', Enter: 'action', Space: 'action', KeyE: 'action',
-    KeyX: 'cancel', Escape: 'cancel',
+    KeyX: 'b', KeyQ: 'b', Backspace: 'b',
+    Escape: 'cancel',
     ShiftLeft: 'slow', ShiftRight: 'slow'
   };
 
-  var ACTIONS = ['left', 'right', 'up', 'down', 'action', 'cancel', 'slow'];
+  var ACTIONS = ['left', 'right', 'up', 'down', 'action', 'b', 'cancel', 'slow'];
 
   RB.input = {
     left: false, right: false, up: false, down: false,
-    action: false, cancel: false, slow: false,
+    action: false, b: false, cancel: false, slow: false,
     // Merge the two input sources. Called once per frame by the main loop —
     // deliberately not by the test harnesses, which drive RB.input directly.
     sync: function () {
@@ -180,7 +181,7 @@
     },
     pressed: function (n) { return this[n] && !prev[n]; },
     anyPressed: function () {
-      return this.pressed('action') || this.pressed('cancel') ||
+      return this.pressed('action') || this.pressed('b') || this.pressed('cancel') ||
              this.pressed('left') || this.pressed('right') ||
              this.pressed('up') || this.pressed('down');
     },

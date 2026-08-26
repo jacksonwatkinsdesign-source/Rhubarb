@@ -22,7 +22,7 @@
   @media (prefers-reduced-motion: reduce) { #hint { transition: none; } }
 </style>
 <canvas id="screen"></canvas>
-<div id="hint">click, then press <b>Z</b> &nbsp;·&nbsp; arrows or WASD to walk &nbsp;·&nbsp; hold shift to slow down</div>
+<div id="hint">click, then press <b>Z</b> (A) &nbsp;·&nbsp; arrows to walk &nbsp;·&nbsp; X is B &nbsp;·&nbsp; shift to slow down</div>
 <script>
 /* ==== core.js ==== */
 // core.js — 240x160 framebuffer, integer scaling, input, tweens, cutscenes.
@@ -188,15 +188,16 @@
     ArrowUp: 'up', KeyW: 'up',
     ArrowDown: 'down', KeyS: 'down',
     KeyZ: 'action', Enter: 'action', Space: 'action', KeyE: 'action',
-    KeyX: 'cancel', Escape: 'cancel',
+    KeyX: 'b', KeyQ: 'b', Backspace: 'b',
+    Escape: 'cancel',
     ShiftLeft: 'slow', ShiftRight: 'slow'
   };
 
-  var ACTIONS = ['left', 'right', 'up', 'down', 'action', 'cancel', 'slow'];
+  var ACTIONS = ['left', 'right', 'up', 'down', 'action', 'b', 'cancel', 'slow'];
 
   RB.input = {
     left: false, right: false, up: false, down: false,
-    action: false, cancel: false, slow: false,
+    action: false, b: false, cancel: false, slow: false,
     // Merge the two input sources. Called once per frame by the main loop —
     // deliberately not by the test harnesses, which drive RB.input directly.
     sync: function () {
@@ -207,7 +208,7 @@
     },
     pressed: function (n) { return this[n] && !prev[n]; },
     anyPressed: function () {
-      return this.pressed('action') || this.pressed('cancel') ||
+      return this.pressed('action') || this.pressed('b') || this.pressed('cancel') ||
              this.pressed('left') || this.pressed('right') ||
              this.pressed('up') || this.pressed('down');
     },
@@ -527,7 +528,7 @@
 (function (RB) {
   'use strict';
 
-  var root = null, pad = null, btn = null, mounted = false;
+  var root = null, pad = null, btn = null, btnB = null, mounted = false;
   var touches = Object.create(null);
 
   // dx/dy octant -> directions. Index 0 is due right, going clockwise.
@@ -555,13 +556,19 @@
     '#rb-pad .rt{top:34%;right:0;height:32%;width:38%;border-radius:0 8px 8px 0;border-left:none;}',
     '#rb-pad .hub{left:30%;top:30%;width:40%;height:40%;border:2px solid #3d4760;}',
     '#rb-pad .arm.hit{background:#3f6ea8;border-color:#5f93d0;}',
-    '#rb-btn{position:relative;width:var(--btn);height:var(--btn);flex:none;border-radius:50%;',
-    '  background:#232a3c;border:3px solid #6b5a34;box-shadow:0 3px 0 #10141f;',
+    // Two keys, offset like a handheld: B low and left, A high and right.
+    '#rb-keys{position:relative;flex:none;display:block;',
+    '  width:calc(var(--btn)*2.15);height:calc(var(--btn)*1.5);}',
+    '.rb-key{position:absolute;width:var(--btn);height:var(--btn);border-radius:50%;',
+    '  background:#232a3c;box-shadow:0 3px 0 #10141f;',
     '  display:flex;align-items:center;justify-content:center;',
     '  font:600 calc(var(--btn)*0.34)/1 ui-monospace,SFMono-Regular,Menlo,monospace;',
-    '  color:#e8a054;letter-spacing:.04em;}',
-    '#rb-btn.hit{background:#4a3a1e;border-color:#e8a054;color:#f4d8a8;transform:translateY(2px);',
-    '  box-shadow:0 1px 0 #10141f;}',
+    '  letter-spacing:.04em;}',
+    '#rb-a{right:0;top:0;border:3px solid #6b5a34;color:#e8a054;}',
+    '#rb-b{left:0;bottom:0;border:3px solid #4a4a68;color:#8fa0bb;}',
+    '.rb-key.hit{transform:translateY(2px);box-shadow:0 1px 0 #10141f;}',
+    '#rb-a.hit{background:#4a3a1e;border-color:#e8a054;color:#f4d8a8;}',
+    '#rb-b.hit{background:#2c3350;border-color:#8fa0bb;color:#dfe6f0;}',
     '@media (prefers-reduced-motion:reduce){#rb-btn{transition:none;}}'
   ].join('\n');
 
@@ -570,7 +577,7 @@
     // a phone and don't become absurd on a 13" tablet.
     var short = Math.min(window.innerWidth, window.innerHeight);
     var padPx = Math.round(Math.max(112, Math.min(168, short * 0.28)));
-    var btnPx = Math.round(Math.max(74, Math.min(118, short * 0.18)));
+    var btnPx = Math.round(Math.max(64, Math.min(104, short * 0.155)));
     return { pad: padPx, btn: btnPx };
   }
 
@@ -600,34 +607,43 @@
         '<div class="arm dn" data-dir="down"></div>' +
         '<div class="arm hub"></div>' +
       '</div>' +
-      '<div id="rb-btn">Z</div>';
+      '<div id="rb-keys">' +
+        '<div class="rb-key" id="rb-b">B</div>' +
+        '<div class="rb-key" id="rb-a">A</div>' +
+      '</div>';
     document.body.appendChild(root);
 
     pad = root.querySelector('#rb-pad');
-    btn = root.querySelector('#rb-btn');
+    btn = root.querySelector('#rb-a');
+    btnB = root.querySelector('#rb-b');
     mounted = true;
   }
 
-  function paint(dirs, action) {
+  function paint(dirs, action, bDown) {
     var arms = pad.querySelectorAll('.arm[data-dir]');
     for (var i = 0; i < arms.length; i++) {
       arms[i].classList.toggle('hit', dirs.indexOf(arms[i].getAttribute('data-dir')) >= 0);
     }
     btn.classList.toggle('hit', action);
+    btnB.classList.toggle('hit', bDown);
   }
 
   // Recompute the whole control state from every touch currently down.
   function apply() {
-    var dirs = [], action = false;
-    var pr = pad.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    var dirs = [], action = false, bDown = false;
+    var pr = pad.getBoundingClientRect();
+    var br = btn.getBoundingClientRect(), br2 = btnB.getBoundingClientRect();
     var pcx = pr.left + pr.width / 2, pcy = pr.top + pr.height / 2;
     var bcx = br.left + br.width / 2, bcy = br.top + br.height / 2;
+    var b2cx = br2.left + br2.width / 2, b2cy = br2.top + br2.height / 2;
 
     for (var id in touches) {
       var t = touches[id];
-      // Button first, with a generous radius — a near miss should still fire.
+      // Buttons first, with a generous radius — a near miss should still fire.
       var bdx = t.x - bcx, bdy = t.y - bcy;
-      if (Math.sqrt(bdx * bdx + bdy * bdy) < br.width * 0.85) { action = true; continue; }
+      if (Math.sqrt(bdx * bdx + bdy * bdy) < br.width * 0.72) { action = true; continue; }
+      var b2dx = t.x - b2cx, b2dy = t.y - b2cy;
+      if (Math.sqrt(b2dx * b2dx + b2dy * b2dy) < br2.width * 0.72) { bDown = true; continue; }
 
       var dx = t.x - pcx, dy = t.y - pcy;
       var dist = Math.sqrt(dx * dx + dy * dy);
@@ -643,7 +659,8 @@
     RB.clearTouch();
     for (var k = 0; k < dirs.length; k++) RB.setTouch(dirs[k], true);
     if (action) RB.setTouch('action', true);
-    paint(dirs, action);
+    if (bDown) RB.setTouch('b', true);
+    paint(dirs, action, bDown);
   }
 
   function track(e) {
@@ -1937,11 +1954,32 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  // Covers both cup sprites: the big one uses l/L/c/C/H/s/S, the small one
+  // uses b/B/w. A key missing here renders as magenta, so keep them together.
   RB.cupPal = {
     t: '#241c28',
     l: '#2b2430', L: '#4c4254',
     c: '#e8e2d4', C: '#b2aa9c', H: '#f8f4ea',
-    s: '#a87848', S: '#7a5430', B: '#c89660'
+    s: '#a87848', S: '#7a5430',
+    b: '#2b2430', B: '#c89660', w: '#e8e2d4'
+  };
+
+  // How much is left, shown beside you while you drink it. Small, cornered
+  // like the action prompt, and only on screen while it is relevant.
+  RB.cupGauge = function (sx, sy, level) {
+    var x = Math.round(sx), y = Math.round(sy);
+    RB.rect(x, y, 24, 14, 'rgba(11,13,20,0.86)');
+    RB.rect(x, y, 24, 1, P.steel1);
+    RB.rect(x, y + 13, 24, 1, P.steel1);
+    RB.rect(x, y, 1, 14, P.steel1);
+    RB.rect(x + 23, y, 1, 14, P.steel1);
+    // drawSprite works in world space, so add the camera back for it.
+    RB.drawSprite(RB.sprites.cup, x + 2 + RB.cam.x, y + 3, RB.cupPal);
+    var full = 8;
+    RB.rect(x + 12, y + 3, 9, full, '#241c28');
+    var h = Math.max(0, Math.round(level * (full - 2)));
+    RB.rect(x + 13, y + 4 + (full - 2 - h), 7, h, '#8a5a34');
+    RB.rect(x + 13, y + 4 + (full - 2 - h), 7, 1, '#b07a48');
   };
 
   // A cup at rest with steam curling off it. Three wisps on different
@@ -2029,6 +2067,7 @@
       RB.state.hasBag = false;
       RB.state.hasCoffee = false;
       RB.state.cupsHeld = 0;
+      RB.state.cupLevel = 1;
 
       van = { x: 300, y: VAN_Y };
       s.doorOpen = 0;
@@ -2181,7 +2220,7 @@
 
       drawVan(van, s.doorOpen);
 
-      if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, 54, 'Z  enter');
+      if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, 54, 'A  enter');
     };
 
     function drawVan(v, open) {
@@ -2366,8 +2405,8 @@
       RB.ctx.globalAlpha = 1;
 
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(DESK_X + 6, WALL - 26, 'Z  check bag');
-        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 60, 'Z  security');
+        if (s.prompt) RB.drawPrompt(DESK_X + 6, WALL - 26, 'A  check bag');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 60, 'A  security');
       }
     };
 
@@ -2540,8 +2579,8 @@
       }
 
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(SERVE_X + 6, WALL - 44, 'Z  passport');
-        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
+        if (s.prompt) RB.drawPrompt(SERVE_X + 6, WALL - 44, 'A  passport');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'A  to the gates');
       }
     };
 
@@ -2606,6 +2645,7 @@
           yield RB.call(function () {
             bought = true;
             RB.state.hasCoffee = true;
+            RB.state.cupLevel = 1;
             player.cup = true;
           });
           yield RB.captionFor('Too hot to drink yet.', 4.2, 128);
@@ -2683,8 +2723,8 @@
       RB.ctx.globalAlpha = 1;
 
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(KIOSK_X + 6, WALL - 44, 'Z  coffee');
-        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
+        if (s.prompt) RB.drawPrompt(KIOSK_X + 6, WALL - 44, 'A  coffee');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'A  to the gates');
       }
     };
 
@@ -2768,6 +2808,7 @@
     // The whole scene is driven by one clock. Sitting makes it run faster,
     // which is the closest this game comes to having a mechanic.
     var clock, seated, sitBlend, plane, bridge, boardingCalled, seatX;
+    var sipCool, halfShown;
 
     var SEATS = [];
     for (var i = 0; i < 6; i++) SEATS.push(560 + i * 16);
@@ -2782,6 +2823,9 @@
       sitBlend = 0;
       boardingCalled = false;
       seatX = null;
+      sipCool = 0;
+      halfShown = false;
+      if (RB.state.cupLevel === undefined) RB.state.cupLevel = 1;
       plane = { x: 1180, settled: false };
       bridge = { ext: 0 };
       script = null;
@@ -2814,7 +2858,10 @@
     s.p = function () { return player; };
     // Read by the playthrough test so it can wait in the chair like a person
     // rather than standing straight back up.
-    s.dbg = function () { return { seated: seated, boardingCalled: boardingCalled, clock: clock }; };
+    s.dbg = function () {
+      return { seated: seated, boardingCalled: boardingCalled, clock: clock,
+               needsSip: seated && RB.state.hasCoffee && RB.state.cupLevel > 0.5 };
+    };
 
     s.sitNow = function () {
       seated = true; player.sitting = true; player.dir = 'down'; player.moving = false;
@@ -2863,9 +2910,29 @@
         n.a.update(dt);
       });
 
+      // Drinking. Half the cup has to go before the aeroplane comes, which
+      // gives the wait something to do with your hands. The clock fallback
+      // exists so that nursing a full cup can never lock the game.
+      sipCool -= dt;
+      if (seated && RB.state.hasCoffee && sipCool <= 0 && RB.input.pressed('b')) {
+        RB.state.cupLevel = Math.max(0, RB.state.cupLevel - 0.125);
+        sipCool = 0.9;
+        RB.audio.sfx.tick();
+        if (RB.state.cupLevel <= 0) {
+          RB.state.hasCoffee = false;
+          RB.state.cupsHeld = 0;
+          player.cup = false;
+          RB.caption.show('Empty.', 3.2, 128);
+        } else if (RB.state.cupLevel <= 0.5 && !halfShown) {
+          halfShown = true;
+          RB.caption.show('Half of it gone. The sky is changing.', 5.0, 128);
+        }
+      }
+      var drunkEnough = !RB.state.hasCoffee || RB.state.cupLevel <= 0.5;
+
       // --- the arrival, on the clock
       // Taxis in from the right and settles on the stand outside the glass.
-      if (clock > 70 && plane.x > 606) {
+      if (clock > 70 && (drunkEnough || clock > 165) && plane.x > 606) {
         plane.x += (600 - plane.x) * Math.min(1, dt * 0.30);
         if (plane.x < 612) { plane.x = 600; plane.settled = true; }
       }
@@ -3029,8 +3096,14 @@
       }
 
       if (!RB.dialog.active()) {
-        if (s.seatPrompt !== null && s.seatPrompt !== undefined) RB.drawPrompt(s.seatPrompt + 6, FLOOR - 4, 'Z  sit');
-        else if (s.boardPrompt) RB.drawPrompt(GATE_DOOR + 7, FLOOR - 56, 'Z  board');
+        if (s.seatPrompt !== null && s.seatPrompt !== undefined) RB.drawPrompt(s.seatPrompt + 6, FLOOR - 4, 'A  sit');
+        else if (s.boardPrompt) RB.drawPrompt(GATE_DOOR + 7, FLOOR - 56, 'A  board');
+      }
+      if (seated && RB.state.hasCoffee) {
+        RB.cupGauge(RB.W - 32, 8, RB.state.cupLevel);
+        if (!RB.dialog.active() && s.seatPrompt === null) {
+          RB.drawPrompt(RB.cam.x + RB.W - 20, 24, 'B  sip');
+        }
       }
       if (seated && !boardingCalled && Math.floor(RB.now) % 12 < 1) {
         RB.font.drawCentered('any direction to stand', RB.W / 2, RB.H - 12, 'rgba(179,192,212,0.5)');
@@ -3114,7 +3187,7 @@
       RB.ctx.globalAlpha = 1;
 
       player.draw(P.warm4, 0.16);
-      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(END_X + 15, 32, 'Z  board');
+      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(END_X + 15, 32, 'A  board');
     };
 
     return s;
@@ -3285,7 +3358,7 @@
       // of the frame and put the player inside the tube rather than beside it.
       nearBacks(x0, w);
 
-      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'Z  sit');
+      if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'A  sit');
     };
 
     // Seat fabric, three tones plus a seam. Seats are drawn in profile: the
@@ -3569,7 +3642,7 @@
       var sun = '#f4d08a';
       var top   = RB.mix('#d6dde8', sun, warm * warmAmt);
       var mid   = RB.mix('#b9c2d1', sun, warm * warmAmt * 0.7);
-      var under = RB.mix('#828da4', sun, warm * warmAmt * 0.35);
+      var under = RB.mix('#5f6a80', sun, warm * warmAmt * 0.30);
       var hi    = RB.mix('#eef2f8', sun, warm * warmAmt);
 
       RB.ctx.save();
@@ -3577,31 +3650,46 @@
       RB.ctx.rotate((tiltDeg * Math.PI) / 180);
       RB.ctx.translate(-(wx + ww * 0.5), -baseY);
 
-      var n = 90;
+      // The root is the widest part of a wing and it runs into the fuselage,
+      // which is below and behind you — so it starts off the left edge of the
+      // frame at full chord and tapers away to the tip. Drawn starting inside
+      // the window it read as a thin plank floating in mid-air.
+      // Root low and left, running off the bottom of the frame into the body;
+      // tip small and high, out toward the horizon. Sloping it the other way
+      // sent the tip off the bottom of the window and buried the ground.
+      var X0 = wx - ww * 0.18, SPAN = ww * 1.14;
+      var ROOT = 34, TIP = 6;
+      function chord(t) { return TIP + (ROOT - TIP) * Math.pow(1 - t, 1.35); }
+      function wingY(t) { return baseY + 20 - t * 32; }
+
+      var n = 120;
       for (var i = 0; i < n; i++) {
         var t = i / (n - 1);
-        var x = wx + ww * 0.16 + t * ww * 0.95;
-        var y = baseY + t * 30;
-        var thick = 19 - t * 14;
+        var x = X0 + t * SPAN;
+        var y = wingY(t);
+        var thick = chord(t);
         RB.rect(x, y, 3, thick, mid);
-        RB.rect(x, y, 3, Math.max(1, thick * 0.45), top);
+        RB.rect(x, y, 3, Math.max(1, thick * 0.42), top);
         RB.rect(x, y, 3, 1, hi);                          // leading edge
-        RB.rect(x, y + thick - 2, 3, 2, under);           // trailing edge
-        // Slat break just aft of the leading edge.
+        RB.rect(x, y + thick - 3, 3, 3, under);           // trailing edge
         if (i % 2 === 0) RB.rect(x, y + 2, 3, 1, RB.mix(mid, under, 0.5));
       }
+      // Root fairing where the wing meets the body, filling the corner.
+      RB.rect(X0 - 6, wingY(0) + 4, 14, ROOT + 12, RB.mix(mid, under, 0.35));
+      RB.rect(X0 - 6, wingY(0) + 4, 14, 2, top);
       // Flap-track fairings hanging off the trailing edge.
-      [0.26, 0.52].forEach(function (ft) {
-        var fx = wx + ww * 0.16 + ft * ww * 0.95;
-        var fy = baseY + ft * 30 + (19 - ft * 14) - 2;
-        RB.rect(fx, fy, 12, 5, under);
-        RB.rect(fx + 10, fy + 1, 6, 3, RB.shade(under, -0.2));
+      [0.20, 0.42, 0.62].forEach(function (ft) {
+        var fx = X0 + ft * SPAN;
+        var fy = wingY(ft) + chord(ft) - 3;
+        var fw = 16 - ft * 7;
+        RB.rect(fx, fy, fw, 6 - ft * 2, under);
+        RB.rect(fx + fw - 3, fy + 1, 7 - ft * 3, 3, RB.shade(under, -0.2));
       });
       // Winglet turning up at the tip.
-      var tx = wx + ww * 0.16 + ww * 0.95, ty = baseY + 30;
-      RB.rect(tx, ty - 10, 3, 14, mid);
-      RB.rect(tx, ty - 10, 3, 2, hi);
-      if (Math.floor(RB.now * 1.4) % 2 === 0) RB.rect(tx, ty - 13, 3, 3, P.green);
+      var tx = X0 + SPAN, ty = wingY(1);
+      RB.rect(tx, ty - 9, 3, 12, mid);
+      RB.rect(tx, ty - 9, 3, 2, hi);
+      if (Math.floor(RB.now * 1.4) % 2 === 0) RB.rect(tx, ty - 12, 3, 3, P.green);
       RB.ctx.restore();
     }
     s.wingAt = wingAt;
@@ -3981,11 +4069,11 @@
       RB.ctx.globalAlpha = 1;
 
       if (t > 2.0 && Math.floor(t * 1.4) % 2 === 0) {
-        RB.font.drawCentered('press  Z', RB.W / 2, RB.H - 30, '#e8a054', { shadow: 'rgba(8,11,22,0.8)' });
+        RB.font.drawCentered('press  A', RB.W / 2, RB.H - 30, '#e8a054', { shadow: 'rgba(8,11,22,0.8)' });
       }
       if (t > 3.4) {
         RB.ctx.globalAlpha = 0.45;
-        RB.font.drawCentered('arrows / WASD to walk   ·   shift to slow down', RB.W / 2, RB.H - 15, '#8a9bb8');
+        RB.font.drawCentered('arrows to walk   ·   Z is A, X is B   ·   shift to slow down', RB.W / 2, RB.H - 15, '#8a9bb8');
         RB.ctx.globalAlpha = 1;
       }
     };
@@ -4049,7 +4137,7 @@ RB.boot(document.getElementById('screen'));
   // get out of the way the moment the player has read it.
   var hint = document.getElementById('hint');
   if (RB.touchControlsVisible && RB.touchControlsVisible()) {
-    hint.innerHTML = 'tap <b>Z</b> to begin &nbsp;·&nbsp; d-pad to walk';
+    hint.innerHTML = 'tap <b>A</b> to begin &nbsp;·&nbsp; d-pad to walk';
   }
   function go() {
     if (RB.onFirstInput) { RB.onFirstInput(); RB.onFirstInput = null; }
