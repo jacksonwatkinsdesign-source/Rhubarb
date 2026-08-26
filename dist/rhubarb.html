@@ -540,7 +540,9 @@
     '  padding:0 max(18px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-bottom))',
     '          max(18px,env(safe-area-inset-right));',
     '  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;}',
-    '#rb-touch.on{display:flex;}',
+    // D-pad on the right, button on the left. Reversing the flex direction
+    // swaps them without touching the DOM order the hit-testing reads.
+    '#rb-touch.on{display:flex;flex-direction:row-reverse;}',
     '#rb-pad{position:relative;width:var(--pad);height:var(--pad);flex:none;}',
     '#rb-pad .arm{position:absolute;background:#232a3c;border:2px solid #3d4760;',
     '  box-shadow:0 2px 0 #10141f;}',
