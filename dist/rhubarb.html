@@ -2159,7 +2159,7 @@
         yield RB.tweenAll([RB.tween(driver, 'x', 144, 1.8, 'inOut'), RB.tween(bag, 'x', 146, 1.8, 'inOut')]);
         yield RB.call(function () { driver.moving = false; driver.dir = 'down'; });
         yield RB.wait(0.5);
-        yield RB.say(['Here you are, sir.'], 'Driver', { top: true });
+        yield RB.say(['Here you are, sir.', 'Safe travels.'], 'Driver', { top: true });
         yield RB.wait(0.6);
         yield RB.call(function () { driver.moving = true; driver.dir = 'right'; });
         yield RB.tween(driver, 'x', 180, 2.0, 'inOut');
