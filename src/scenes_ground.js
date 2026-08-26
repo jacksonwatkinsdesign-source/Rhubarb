@@ -56,6 +56,7 @@
       RB.audio.bed('night');
       RB.state.hasBag = false;
       RB.state.hasCoffee = false;
+      RB.state.cupsHeld = 0;
 
       van = { x: 300, y: VAN_Y };
       s.doorOpen = 0;
@@ -561,7 +562,9 @@
       barista.update(dt);
       sitters.forEach(function (a) { a.update(dt); });
 
-      var atKiosk = !bought && !busy && Math.abs(player.x - KIOSK_X) < 30 && player.y < FLOOR + 18;
+      // Generous: the kiosk is optional, so it must at least be noticeable to
+      // someone walking straight through at the height they spawned at.
+      var atKiosk = !bought && !busy && Math.abs(player.x - KIOSK_X) < 34 && player.y < FLOOR + 34;
       s.prompt = atKiosk;
       if (atKiosk && RB.input.pressed('action')) {
         script = new RB.Script(function* () {

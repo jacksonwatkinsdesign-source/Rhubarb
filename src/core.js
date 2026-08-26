@@ -271,8 +271,8 @@
     this.done = false;
     this.step();
   }
-  Script.prototype.step = function () {
-    var n = this.it.next();
+  Script.prototype.step = function (value) {
+    var n = this.it.next(value);
     if (n.done) { this.done = true; this.cur = null; }
     else this.cur = n.value;
   };
@@ -281,7 +281,10 @@
     // Drain zero-duration tasks in the same frame so RB.call chains don't
     // each cost a frame.
     var guard = 0;
-    while (this.cur && this.cur.update(dt) && guard++ < 64) this.step();
+    while (this.cur && this.cur.update(dt) && guard++ < 64) {
+      var v = this.cur.result;
+      this.step(v);
+    }
     return this.done;
   };
   RB.Script = Script;

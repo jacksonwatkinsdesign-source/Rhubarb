@@ -23,6 +23,9 @@ const SHOTS = [
   ['12b-away',      'takeoff',  4500, null],
   ['12c-layer',     'takeoff',  5100, null],
   ['13-sunrise-a',  'sunrise',  900,  null],
+  ['13b-offer',     'sunrise',  1950, `RB.state.cupsHeld=1;`],
+  ['13c-serve',     'sunrise',  3900, `RB.state.cupsHeld=1;`],
+  ['13d-collect',   'sunrise',  5850, `RB.state.cupsHeld=2;`],
   ['14-sunrise-b',  'sunrise',  2600, null],
   ['15-title-card', 'sunrise',  4200, null],
   ['16-end-card',   'sunrise',  5100, null]
@@ -61,10 +64,15 @@ const SHOTS = [
         RB.enterScene(scene);
         if (setup) eval(setup);
         const dt = 1 / 60;
+        let press = false;
         for (let i = 0; i < frames; i++) {
+          // Answer the chooser and tap through dialogue, so beats after a
+          // question can be captured at all.
+          RB.input.action = (RB.chooser.active() || RB.dialog.active()) ? (press = !press) : false;
           RB.now += dt;
           RB.updateTransition(dt);
           RB.dialog.update(dt);
+          RB.chooser.update(dt);
           RB.caption.update(dt);
           if (RB.scene.update) RB.scene.update(dt);
           RB.input.latch();
@@ -72,6 +80,7 @@ const SHOTS = [
         RB.scene.draw();
         RB.caption.draw();
         RB.dialog.draw();
+        RB.chooser.draw();
         RB.drawFade();
         RB.present();
         return { ok: true, scene: RB.scene.id, err };

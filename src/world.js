@@ -135,6 +135,68 @@
     };
   };
 
+  // =============================================================== chooser
+  // A two-option question in the dialogue box. Up/down (or the d-pad) moves
+  // the cursor, the action key confirms. Used exactly once, for the coffee.
+  var chz = { active: false, prompt: '', speaker: null, options: [], i: 0, result: -1 };
+
+  RB.chooser = {
+    active: function () { return chz.active; },
+    update: function () {
+      if (!chz.active) return;
+      if (RB.input.pressed('up')) { chz.i = (chz.i + chz.options.length - 1) % chz.options.length; RB.audio.sfx.tick(); }
+      if (RB.input.pressed('down')) { chz.i = (chz.i + 1) % chz.options.length; RB.audio.sfx.tick(); }
+      if (RB.input.pressed('action')) {
+        chz.result = chz.i;
+        chz.active = false;
+        RB.audio.sfx.tick();
+      }
+    },
+    draw: function () {
+      if (!chz.active) return;
+      // Height derived from exactly what gets drawn below, or the last
+      // option slides off the bottom of the screen.
+      var boxH = 12 + (chz.speaker ? 10 : 0) + 12 + chz.options.length * 11;
+      var boxY = RB.H - boxH - 5;
+      RB.rect(6, boxY, RB.W - 12, boxH, 'rgba(11,13,20,0.92)');
+      RB.rect(6, boxY, RB.W - 12, 1, P.steel1);
+      RB.rect(6, boxY + boxH - 1, RB.W - 12, 1, P.steel1);
+      RB.rect(6, boxY, 1, boxH, P.steel1);
+      RB.rect(RB.W - 7, boxY, 1, boxH, P.steel1);
+
+      var ty = boxY + 6;
+      if (chz.speaker) { RB.font.draw(chz.speaker, 13, ty, P.amber); ty += 10; }
+      RB.font.draw(chz.prompt, 13, ty, P.cream);
+      ty += 12;
+      for (var i = 0; i < chz.options.length; i++) {
+        var on = i === chz.i;
+        if (on) RB.font.draw('>', 16, ty + i * 11, P.amber);
+        RB.font.draw(chz.options[i], 26, ty + i * 11, on ? P.cream : P.steel2);
+      }
+    }
+  };
+
+  // Yieldable. The generator receives the chosen index.
+  RB.choose = function (prompt, speaker, options) {
+    var task = {
+      started: false,
+      result: -1,
+      update: function () {
+        if (!this.started) {
+          chz.prompt = prompt; chz.speaker = speaker || null;
+          chz.options = options; chz.i = 0; chz.result = -1;
+          chz.active = true;
+          this.started = true;
+          return false;
+        }
+        if (chz.active) return false;
+        this.result = chz.result;
+        return true;
+      }
+    };
+    return task;
+  };
+
   // ============================================================== captions
   // Unboxed centred text that fades in and out on its own. This is the voice
   // the ambient beats use — no border, no prompt, nothing to press.

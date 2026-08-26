@@ -78,6 +78,7 @@
     if (sc) {
       // Dialogue eats input while it's up; scenes check RB.dialog.active().
       RB.dialog.update(dt);
+      RB.chooser.update(dt);
       RB.caption.update(dt);
       if (sc.update) sc.update(dt);
       if (sc.draw) sc.draw();
@@ -85,6 +86,7 @@
 
     RB.caption.draw();
     RB.dialog.draw();
+    RB.chooser.draw();
     RB.drawFade();
 
     RB.input.latch();

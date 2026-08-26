@@ -68,9 +68,9 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
       const g = RB.scene.dbg && RB.scene.dbg();
       // Dialogue is always handled first: any branch that walks instead of
       // tapping will sit forever in front of an unadvanced line.
-      if (RB.dialog.active()) {
+      if (RB.dialog.active() || RB.chooser.active()) {
         press = !press;
-        RB.input.action = press;            // tap to advance, don't hold
+        RB.input.action = press;            // tap to advance / accept
       } else if (g && g.seated && !g.boardingCalled) {
         // Seated at the gate with the aeroplane not in yet: do nothing at all,
         // which is the entire intended activity.
@@ -99,6 +99,7 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
       RB.now += dt;
       RB.updateTransition(dt);
       RB.dialog.update(dt);
+      RB.chooser.update(dt);
       RB.caption.update(dt);
       if (RB.scene.update) RB.scene.update(dt);
       RB.input.latch();
@@ -108,12 +109,12 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
         break;
       }
     }
-    return { log, stuckAt, diag };
+    return { log, stuckAt, diag, cups: RB.state.cupsHeld, coffee: !!RB.state.hasCoffee };
   }, MAX_FRAMES);
 
   result.log.forEach(e => console.log(`  ${String(e.atSec).padStart(7)}s  ${e.scene}`));
   if (result.stuckAt) { console.log(`\nSTUCK in "${result.stuckAt}" — no progress for 170s`); console.log(JSON.stringify(result.diag, null, 2)); }
-  else console.log('\ncompleted the level');
+  else console.log('\ncompleted the level  (kiosk coffee: ' + result.coffee + ', cups left at the end: ' + result.cups + ')');
   console.log(errs.length ? errs.slice(0, 10).join('\n') : 'no runtime errors');
   await browser.close();
   process.exitCode = result.stuckAt ? 1 : 0;

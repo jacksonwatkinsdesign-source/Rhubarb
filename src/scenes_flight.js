@@ -20,6 +20,7 @@
       RB.audio.music(0.26, 4);
       player = new RB.Actor({ x: 16, y: 78, pal: RB.cast.you, dir: 'right' });
       player.cup = !!RB.state.hasCoffee;
+      RB.state.cupsHeld = RB.state.hasCoffee ? 1 : 0;
       s.seated = false;
       s.t = 0;
       script = new RB.Script(function* () {
@@ -516,36 +517,40 @@
   // Above the layer. Nothing happens except the light, which is the point.
   RB.scenes.sunrise = (function () {
     var s = { id: 'sunrise' };
-    var script, k, sun, titleA, endFade;
+    var sky, service, k, sun, titleA, endFade, att, dim;
     var TK = RB.scenes.takeoff;
 
+    // The cruise runs two scripts at once: one owns the light, the other owns
+    // the cabin service. Interleaving them in a single generator would mean a
+    // thirty-second sky tween blocking a drinks trolley, which is exactly
+    // backwards.
     s.enter = function () {
       RB.audio.bed('sky');
       RB.audio.ambLevel(0.45, 4);
       RB.audio.music(0.40, 6);
-      k = { t: 0 };          // 0..1 across the whole dawn
-      sun = { y: 1.05 };     // normalized; starts below the cloud tops
+      k = { t: 0 };
+      sun = { y: 1.05 };
       titleA = { v: 0 };
       endFade = { v: 0 };
+      dim = { v: 0 };
+      att = { x: -22, tray: false };
       s.finished = false;
       s.t = 0;
+      if (RB.state.cupsHeld === undefined) RB.state.cupsHeld = RB.state.hasCoffee ? 1 : 0;
 
-      script = new RB.Script(function* () {
+      sky = new RB.Script(function* () {
         yield RB.wait(3.0);
         yield RB.captionFor('Above the layer, it is already morning.', 5.5, 22);
         yield RB.tweenAll([
-          RB.tween(k, 't', 0.45, 22.0, 'inOut'),
-          RB.tween(sun, 'y', 0.74, 22.0, 'inOut')
+          RB.tween(k, 't', 0.45, 46.0, 'inOut'),
+          RB.tween(sun, 'y', 0.74, 46.0, 'inOut')
         ]);
-        yield RB.captionFor('It has been morning up here the whole time.', 5.5, 22);
         yield RB.tweenAll([
-          RB.tween(k, 't', 0.80, 30.0, 'inOut'),
-          RB.tween(sun, 'y', 0.30, 30.0, 'inOut')
+          RB.tween(k, 't', 0.80, 48.0, 'inOut'),
+          RB.tween(sun, 'y', 0.30, 48.0, 'inOut')
         ]);
         yield RB.wait(4.0);
-        // Dim the picture first, bring the card up over it, then go the rest
-        // of the way to black. A title over a bright sky is a title nobody
-        // can read.
+        yield RB.captionFor('It has been morning up here the whole time.', 5.5, 22);
         yield RB.call(function () { RB.audio.fadeOut(16); });
         yield RB.tween(endFade, 'v', 0.68, 7.0, 'inOut');
         yield RB.tween(titleA, 'v', 1, 3.0, 'inOut');
@@ -554,12 +559,60 @@
         yield RB.call(function () { s.finished = true; });
         yield RB.wait(2.0);
       });
+
+      // Quarter of the way in, halfway, three-quarters.
+      service = new RB.Script(function* () {
+        var accepted = false;
+
+        yield RB.waitFor(function () { return s.t > 30; });
+        yield RB.call(function () { RB.audio.sfx.tick(); });
+        yield arrive();
+        var pick = yield RB.choose('Coffee, sir?', 'Attendant', ['Yes, please.', 'No, thank you.']);
+        accepted = pick === 0;
+        yield RB.say(accepted ? ['Of course.'] : ['Certainly, sir.'], 'Attendant');
+        yield leave();
+
+        if (accepted) {
+          yield RB.waitFor(function () { return s.t > 62; });
+          yield RB.call(function () { att.tray = true; });
+          yield arrive();
+          yield RB.say(['Your coffee, sir.'], 'Attendant');
+          yield RB.call(function () {
+            RB.state.cupsHeld = (RB.state.cupsHeld || 0) + 1;
+            att.tray = false;
+            RB.audio.sfx.belt();
+          });
+          yield RB.wait(0.6);
+          yield leave();
+        }
+
+        yield RB.waitFor(function () { return s.t > 94; });
+        if (RB.state.cupsHeld > 0) {
+          yield RB.call(function () { att.tray = true; });
+          yield arrive();
+          yield RB.say([RB.state.cupsHeld > 1 ? 'May I take those, sir?' : 'May I take that, sir?'], 'Attendant');
+          yield RB.call(function () { RB.state.cupsHeld = 0; RB.audio.sfx.tick(); });
+          yield RB.wait(0.5);
+          yield RB.say(['Thank you, sir.'], 'Attendant');
+          yield RB.call(function () { att.tray = false; });
+          yield leave();
+        }
+      });
+
+      function arrive() {
+        return RB.tweenAll([RB.tween(att, 'x', 16, 1.4, 'out'), RB.tween(dim, 'v', 1, 1.0, 'inOut')]);
+      }
+      function leave() {
+        return RB.tweenAll([RB.tween(att, 'x', -22, 1.6, 'in'), RB.tween(dim, 'v', 0, 1.4, 'inOut')]);
+      }
     };
+
+    s.dbg = function () { return { t: s.t, cups: RB.state.cupsHeld }; };
 
     s.update = function (dt) {
       s.t += dt;
-      script.update(dt);
-      // Restart on a keypress once the title has settled.
+      sky.update(dt);
+      service.update(dt);
       if (s.finished && RB.input.anyPressed()) RB.go('title', { fade: 1.2 });
     };
 
@@ -582,7 +635,6 @@
       RB.vgrad(wx, wy, ww, hz - wy, R, 14);
       A.stars(wx, ww, wy, (hz - wy) * 0.5, RB.clamp(0.45 - k.t * 1.4, 0, 1));
 
-      // The sun: a hard disc with quantised halo rings. Banding on purpose.
       var sy = wy + wh * sun.y;
       var sx = wx + ww * 0.66;
       var sunC = RB.mixRamp(['#f4d08a', '#ffe9b8'], RB.clamp(k.t, 0, 1));
@@ -594,13 +646,8 @@
       disc(sx, sy, 11, sunC);
       disc(sx, sy, 8, '#fff6dc');
 
-      // Cloud tops. Three banks, furthest first, each a solid silhouette
-      // whose upper edge is a sum of sines — the far one nearly the colour of
-      // the sky, the near one dark enough to sit under the wing.
       var deck = RB.mix('#5d6d92', R[3], 0.30);
       RB.rect(wx, hz, ww, wy + wh - hz, deck);
-
-      // Haze where the deck meets the sky.
       RB.ctx.globalAlpha = 0.45;
       RB.rect(wx, hz - 5, ww, 9, RB.mix(R[3], sunC, 0.35));
       RB.ctx.globalAlpha = 1;
@@ -615,13 +662,17 @@
         cloudBank(wx, ww, ly, amp, drift, layer * 2.7, base, lit, sx, wy + wh);
       }
 
-      // The same wing, now catching the light.
       TK.wingAt(wx, wy, ww, wh, -2, 1, 0.55 * k.t);
 
+      // The window dims while someone is standing over you.
+      if (dim.v > 0.01) {
+        RB.ctx.globalAlpha = dim.v * 0.30;
+        RB.ctx.fillStyle = '#0b0d14';
+        RB.ctx.fillRect(wx, wy, ww, wh);
+        RB.ctx.globalAlpha = 1;
+      }
       RB.ctx.restore();
 
-      // Frame + cabin, reusing the takeoff scene's window so it is
-      // unmistakably the same pane of glass.
       RB.ctx.save();
       TK.roundRect(wx - 3, wy - 3, ww + 6, wh + 6, 29);
       TK.roundRect(wx, wy, ww, wh, 26, true);
@@ -643,8 +694,24 @@
       RB.rect(wx - 10, wy - 12, ww + 20, 4, RB.mix('#4a5165', sunC, 0.15 * k.t));
       RB.rect(wx - 10, wy + wh + 9, ww + 20, 5, RB.mix('#4a5165', sunC, 0.15 * k.t));
 
-      // The end card sits above the view and survives the fade a moment
-      // longer than the picture does.
+      // Whatever you are holding sits on the ledge, and visibly goes away
+      // when she collects it.
+      var cups = RB.state.cupsHeld || 0;
+      for (var c = 0; c < cups; c++) {
+        RB.drawSprite(RB.sprites.cup, wx + 14 + c * 11, wy + wh + 1, RB.cast.you);
+      }
+
+      // The attendant, leaning into your view from the aisle. Drawn after the
+      // frame so she overlaps its edge rather than sitting behind it.
+      if (att.x > -20) {
+        RB.drawSprite(RB.sprites.side[0], att.x, 74, RB.cast.crew, false,
+                      sunC, 0.14 * k.t);
+        if (att.tray) {
+          RB.rect(att.x + 13, 84, 12, 2, '#8a8f9c');
+          RB.drawSprite(RB.sprites.cup, att.x + 15, 76, RB.cast.you);
+        }
+      }
+
       if (endFade.v > 0.001) {
         RB.ctx.globalAlpha = RB.clamp(endFade.v, 0, 1);
         RB.ctx.fillStyle = '#05070d';
@@ -672,9 +739,6 @@
       }
     }
 
-    // One bank of cloud: a solid fill whose top edge is a sum of sines, so
-    // it rolls rather than repeating. Columns near the sun take the lit
-    // colour, which is what gives the deck its direction of light.
     function cloudBank(x0, w, baseY, amp, drift, phase, base, lit, sunX, bottomY) {
       for (var i = 0; i < w; i++) {
         var u = i + drift;

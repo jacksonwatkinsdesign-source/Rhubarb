@@ -15,6 +15,7 @@ Open `index.html` in a browser. No build step, no server, no dependencies.
 |---|---|---|
 | Walk | Arrow keys or WASD | D-pad (8-way, slide your thumb) |
 | Interact | Z (also Enter / Space / E) | Z button |
+| Choose | Up / down, then Z | D-pad up / down, then Z |
 | Slow down | Hold Shift | — |
 | Stand up | Any direction | Any direction |
 
@@ -25,6 +26,11 @@ however far the game is scaled up, and every active touch is hit-tested each
 event — which is what makes holding a direction while tapping the button work.
 
 Buying a coffee on the way to the gates is optional. If you do, you carry the cup for the rest of the trip.
+
+A quarter of the way into the cruise the attendant offers you one. Say yes and
+she brings it at the halfway mark; three-quarters through she comes back for
+the empties. Whatever you are holding sits on the window ledge, so the cups
+visibly accumulate and visibly go away.
 
 One playthrough is roughly 8–12 minutes.
 
