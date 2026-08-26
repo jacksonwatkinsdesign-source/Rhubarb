@@ -81,6 +81,7 @@
       RB.audio.bed('gate');
       RB.audio.music(0.30, 3);
       player = new RB.Actor({ x: 16, y: FLOOR + 18, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       clock = 0;
       seated = false;
       sitBlend = 0;
@@ -169,7 +170,7 @@
 
       // --- the arrival, on the clock
       // Taxis in from the right and settles on the stand outside the glass.
-      if (clock > 30 && plane.x > 606) {
+      if (clock > 70 && plane.x > 606) {
         plane.x += (600 - plane.x) * Math.min(1, dt * 0.30);
         if (plane.x < 612) { plane.x = 600; plane.settled = true; }
       }
@@ -219,7 +220,7 @@
 
     // The sky over the whole wait: night -> pre-dawn -> civil twilight.
     function skyNow() {
-      var k = RB.clamp(clock / 62, 0, 1);
+      var k = RB.clamp(clock / 104, 0, 1);
       if (k < 0.5) return A.skyMix('night', 'predawn', k / 0.5);
       return A.skyMix('predawn', 'civil', (k - 0.5) / 0.5);
     }
@@ -231,7 +232,7 @@
       var ramp = skyNow();
       var horizon = vy + vh * 0.52;
       RB.vgrad(vx - RB.cam.x, vy, vw, horizon - vy, ramp, 10);
-      A.stars(0, RB.W, vy, (horizon - vy) * 0.8, RB.clamp(1 - clock / 40, 0, 1) * 0.9);
+      A.stars(0, RB.W, vy, (horizon - vy) * 0.8, RB.clamp(1 - clock / 76, 0, 1) * 0.9);
 
       // Distant terminal and tower. Silhouettes only a shade darker than the
       // sky, with their own lit windows, so they read as far away rather than
@@ -319,7 +320,7 @@
 
       var list = cast.map(function (n) { return n.a; }).concat([player]);
       list.sort(function (a, b) { return a.y - b.y; });
-      var warm = RB.clamp(1 - clock / 62, 0, 1);
+      var warm = RB.clamp(1 - clock / 104, 0, 1);
       list.forEach(function (a) { a.draw(RB.mix('#c9b184', '#8aa0d0', 1 - warm), 0.10); });
 
       // Seated vignette: darken the terminal, leave the window bright, so
@@ -354,6 +355,7 @@
     s.enter = function () {
       RB.audio.bed('bridge');
       player = new RB.Actor({ x: 14, y: FLOOR + 10, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       script = new RB.Script(function* () {
         yield RB.wait(2.0);
         yield RB.captionFor('The floor gives slightly underfoot.', 5.0, 132);

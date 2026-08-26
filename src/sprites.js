@@ -154,6 +154,21 @@
     '..........'
   ];
 
+  // ------------------------------------------------------------------ cup
+  // A takeaway cup: dark lid, pale cup, card sleeve. Reuses the bag's palette
+  // keys so carrying one needs no new colours.
+  var CUP = [
+    '.ttttt.',
+    'tbbbbbt',
+    'tBBBBBt',
+    'ttttttt',
+    '.twwwt.',
+    '.tbbbt.',
+    '.tBBBt.',
+    '.twwwt.',
+    '..ttt..'
+  ];
+
   // Validate rather than silently pad: a sheared sprite is very hard to spot
   // by eye and very easy to introduce by miscounting one row.
   var errors = [];
@@ -175,6 +190,7 @@
   var UP   = { 0: check('up0', U0, W, H),   1: check('up1', U1, W, H),   2: check('up2', U2, W, H) };
   var SIDE = { 0: check('side0', S0, W, H), 1: check('side1', S1, W, H), 2: check('side2', S2, W, H) };
   var BAG_F = check('bag', BAG, 10, 14);
+  var CUP_F = check('cup', CUP, 7, 9);
 
   // Seated poses are derived from the standing idle so they can never drift
   // out of sync with it: drop two rows in, fold the legs at the bottom.
@@ -191,7 +207,7 @@
 
   RB.sprites = {
     down: DOWN, up: UP, side: SIDE,
-    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F,
+    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F,
     W: W, H: H
   };
 
@@ -264,6 +280,7 @@
     this.hidden = false;
     this.speed = o.speed || 44;
     this.bag = o.bag || false;
+    this.cup = o.cup || false;
     this.shadow = o.shadow !== false;
   }
 
@@ -305,6 +322,12 @@
     if (this.bag && !this.sitting) {
       var bx = this.x + (flip ? 12 : -10);
       RB.drawSprite(RB.sprites.bag, bx, this.y + 6, this.pal, flip, tint, tintAmt);
+    }
+    // Held out at chest height, on the side you're facing.
+    if (this.cup) {
+      var cx = this.x + (this.dir === 'left' ? -5 : this.dir === 'right' ? 11 : 10);
+      var cy = this.y + (this.sitting ? 12 : 8);
+      RB.drawSprite(RB.sprites.cup, cx, cy, this.pal, false, tint, tintAmt);
     }
   };
 

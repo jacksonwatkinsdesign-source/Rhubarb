@@ -22,7 +22,8 @@
     elder:   RB.pal({ hair: '#ded8cc', skin: '#f0c090', shirt: '#b08a5c', pants: '#5a4c40', tie: '#8a6a44' }),
     kid:     RB.pal({ hair: '#6a4222', skin: '#f0c090', shirt: '#e08a44', pants: '#3f5488', tie: '#e08a44' }),
     coat:    RB.pal({ hair: '#2a1e18', skin: '#d8a068', shirt: '#c04a4a', pants: '#38344a', tie: '#8a3438' }),
-    crew:    RB.pal({ hair: '#2b2320', skin: '#f0c090', shirt: '#263c74', pants: '#1a2646', tie: '#c04048' })
+    crew:    RB.pal({ hair: '#2b2320', skin: '#f0c090', shirt: '#263c74', pants: '#1a2646', tie: '#c04048' }),
+    barista: RB.pal({ hair: '#4a2a18', skin: '#d8a068', shirt: '#4a6b52', pants: '#3a3a44', tie: '#4a6b52' })
   };
 
   // ===================================================================== curb
@@ -54,6 +55,7 @@
     s.enter = function () {
       RB.audio.bed('night');
       RB.state.hasBag = false;
+      RB.state.hasCoffee = false;
 
       van = { x: 300, y: VAN_Y };
       s.doorOpen = 0;
@@ -466,7 +468,7 @@
 
       var atExit = cleared && !busy && player.x > EXIT_X - 18;
       s.exitPrompt = atExit;
-      if (atExit && RB.input.pressed('action')) RB.go('gate', { fade: 1.8 });
+      if (atExit && RB.input.pressed('action')) RB.go('coffee', { fade: 1.6 });
     };
 
     s.draw = function () {
@@ -509,6 +511,147 @@
 
       if (!RB.dialog.active()) {
         if (s.prompt) RB.drawPrompt(ARCH_X, WALL - 44, 'Z  step through');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
+      }
+    };
+
+    return s;
+  })();
+
+  // ================================================================== coffee
+  // A kiosk on the way to the gates. Buying is optional; the game will not
+  // stop you walking past, and it will not congratulate you either way.
+  RB.scenes.coffee = (function () {
+    var s = { id: 'coffee' };
+    var player, barista, sitters, script, roomW = 600, bought;
+    var CEIL = 18, WALL = 66, FLOOR = 84;
+    var KIOSK_X = 300, EXIT_X = 566;
+    var steam = 0;
+
+    s.enter = function () {
+      RB.audio.bed('lobby');
+      player = new RB.Actor({ x: 22, y: FLOOR + 20, pal: RB.cast.you, dir: 'right' });
+      player.cup = RB.state.hasCoffee;
+      bought = !!RB.state.hasCoffee;
+      script = null;
+      steam = 0;
+
+      barista = new RB.Actor({ x: KIOSK_X + 30, y: 48, pal: RB.cast.barista, dir: 'down', shadow: false });
+      // Two people already sitting with theirs. Nobody is in a hurry here.
+      sitters = [
+        new RB.Actor({ x: 158, y: FLOOR + 22, pal: RB.cast.elder, dir: 'right', sitting: true }),
+        new RB.Actor({ x: 462, y: FLOOR + 28, pal: RB.cast.student, dir: 'left', sitting: true })
+      ];
+    };
+
+    s.p = function () { return player; };
+
+    var solids = [
+      { x: -20, y: 0, w: 24, h: 300 },
+      { x: 0, y: 0, w: 600, h: FLOOR }
+    ];
+    var bounds = { x0: 10, y0: FLOOR, x1: roomW - 22, y1: 134 };
+
+    s.update = function (dt) {
+      steam += dt;
+      if (script) { script.update(dt); if (script.done) script = null; }
+      var busy = !!script || RB.dialog.active() || RB.transitioning();
+      if (!busy) RB.walk(player, dt, solids, bounds);
+      RB.camFollow(player.x, roomW, dt);
+      barista.update(dt);
+      sitters.forEach(function (a) { a.update(dt); });
+
+      var atKiosk = !bought && !busy && Math.abs(player.x - KIOSK_X) < 30 && player.y < FLOOR + 18;
+      s.prompt = atKiosk;
+      if (atKiosk && RB.input.pressed('action')) {
+        script = new RB.Script(function* () {
+          yield RB.call(function () { player.dir = 'up'; player.moving = false; });
+          yield RB.say(['Coffee, please.'], 'You');
+          yield RB.wait(1.1);
+          yield RB.call(function () { RB.audio.sfx.belt(); });
+          yield RB.wait(1.3);
+          yield RB.say(['Thank you, sir.'], 'Barista');
+          yield RB.call(function () {
+            bought = true;
+            RB.state.hasCoffee = true;
+            player.cup = true;
+          });
+          yield RB.captionFor('Too hot to drink yet.', 4.2, 128);
+        });
+      }
+
+      var atExit = !busy && player.x > EXIT_X - 18;
+      s.exitPrompt = atExit;
+      if (atExit && RB.input.pressed('action')) RB.go('gate', { fade: 1.8 });
+    };
+
+    s.draw = function () {
+      var x0 = RB.cam.x - 8, w = RB.W + 16;
+      RB.clear('#231f2c');
+      A.ceiling(x0, w, CEIL, '#2a2732', '#f0dcb0');
+      A.hall(x0, w, CEIL, WALL, FLOOR, '#3a3040', P.warm4, 0.16);
+
+      A.sign(96, 26, 'GATES  1 - 24  >', 96, '#1a2740', P.cream);
+
+      // Menu board over the counter — deliberately unreadable at this size.
+      RB.wrect(250, 22, 108, 24, '#241c1a');
+      RB.wrect(250, 22, 108, 1, '#4a3a30');
+      for (var r = 0; r < 4; r++) {
+        RB.wrect(256, 26 + r * 5, 44 + (r % 3) * 12, 2, RB.mix(P.cream, '#241c1a', 0.35));
+        RB.wrect(340, 26 + r * 5, 12, 2, RB.mix(P.amber, '#241c1a', 0.3));
+      }
+
+      // Back bar: grinder, urns, a shelf of cups.
+      RB.wrect(262, WALL - 20, 16, 20, '#5a5060');
+      RB.wrect(264, WALL - 24, 12, 5, '#6e6376');
+      RB.wrect(330, WALL - 16, 22, 16, '#7a6f82');
+      RB.wrect(330, WALL - 16, 22, 2, '#9a8ea2');
+      for (var c = 0; c < 5; c++) RB.wrect(292 + c * 7, WALL - 8, 5, 7, '#d8cfc0');
+
+      barista.draw('#e0c898', 0.16);
+      A.counter(250, FLOOR, 116, '#8a6a4a', '#4a3a34');
+
+      // Espresso machine on the worktop, with steam.
+      RB.wrect(268, FLOOR - 36, 30, 16, '#9aa2b0');
+      RB.wrect(268, FLOOR - 36, 30, 2, '#c2c8d4');
+      RB.wrect(272, FLOOR - 32, 8, 7, '#3a4050');
+      RB.wrect(286, FLOOR - 32, 8, 7, '#3a4050');
+      RB.wrect(268, FLOOR - 22, 30, 2, '#6f7684');
+      RB.ctx.globalAlpha = 0.22;
+      for (var st = 0; st < 3; st++) {
+        var sy = FLOOR - 40 - ((steam * 9 + st * 6) % 16);
+        RB.wrect(280 + Math.sin(steam * 2 + st) * 2, sy, 2, 3, P.white);
+      }
+      RB.ctx.globalAlpha = 1;
+
+      A.floor(x0, w, FLOOR, RB.H, '#4a4252', '#423b49', P.cream);
+      RB.ctx.globalAlpha = 0.07;
+      RB.wrect(250, FLOOR, 130, 44, P.warm4);
+      RB.ctx.globalAlpha = 1;
+
+      // Two little cafe tables.
+      [[132, 116], [436, 122]].forEach(function (t) {
+        RB.wrect(t[0], t[1], 28, 3, '#6a5545');
+        RB.wrect(t[0], t[1], 28, 1, '#8a7060');
+        RB.wrect(t[0] + 12, t[1] + 3, 4, 10, '#4a3c32');
+        RB.wrect(t[0] + 8, t[1] + 13, 12, 2, '#4a3c32');
+        RB.drawSprite(RB.sprites.cup, t[0] + 16, t[1] - 8, RB.cast.you);
+      });
+      A.plant(212, FLOOR + 14);
+      A.plant(410, FLOOR + 18);
+
+      A.doorway(EXIT_X, 28, WALL + 16, '#4a5468', 0.12);
+
+      var list = sitters.concat([player]);
+      list.sort(function (a, b) { return a.y - b.y; });
+      list.forEach(function (a) { a.draw('#e0c898', 0.14); });
+
+      RB.ctx.globalAlpha = 0.06;
+      RB.rect(0, 0, RB.W, RB.H, P.warm4);
+      RB.ctx.globalAlpha = 1;
+
+      if (!RB.dialog.active()) {
+        if (s.prompt) RB.drawPrompt(KIOSK_X + 6, WALL - 44, 'Z  coffee');
         else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
       }
     };

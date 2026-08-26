@@ -836,6 +836,21 @@
     '..........'
   ];
 
+  // ------------------------------------------------------------------ cup
+  // A takeaway cup: dark lid, pale cup, card sleeve. Reuses the bag's palette
+  // keys so carrying one needs no new colours.
+  var CUP = [
+    '.ttttt.',
+    'tbbbbbt',
+    'tBBBBBt',
+    'ttttttt',
+    '.twwwt.',
+    '.tbbbt.',
+    '.tBBBt.',
+    '.twwwt.',
+    '..ttt..'
+  ];
+
   // Validate rather than silently pad: a sheared sprite is very hard to spot
   // by eye and very easy to introduce by miscounting one row.
   var errors = [];
@@ -857,6 +872,7 @@
   var UP   = { 0: check('up0', U0, W, H),   1: check('up1', U1, W, H),   2: check('up2', U2, W, H) };
   var SIDE = { 0: check('side0', S0, W, H), 1: check('side1', S1, W, H), 2: check('side2', S2, W, H) };
   var BAG_F = check('bag', BAG, 10, 14);
+  var CUP_F = check('cup', CUP, 7, 9);
 
   // Seated poses are derived from the standing idle so they can never drift
   // out of sync with it: drop two rows in, fold the legs at the bottom.
@@ -873,7 +889,7 @@
 
   RB.sprites = {
     down: DOWN, up: UP, side: SIDE,
-    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F,
+    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F,
     W: W, H: H
   };
 
@@ -946,6 +962,7 @@
     this.hidden = false;
     this.speed = o.speed || 44;
     this.bag = o.bag || false;
+    this.cup = o.cup || false;
     this.shadow = o.shadow !== false;
   }
 
@@ -987,6 +1004,12 @@
     if (this.bag && !this.sitting) {
       var bx = this.x + (flip ? 12 : -10);
       RB.drawSprite(RB.sprites.bag, bx, this.y + 6, this.pal, flip, tint, tintAmt);
+    }
+    // Held out at chest height, on the side you're facing.
+    if (this.cup) {
+      var cx = this.x + (this.dir === 'left' ? -5 : this.dir === 'right' ? 11 : 10);
+      var cy = this.y + (this.sitting ? 12 : 8);
+      RB.drawSprite(RB.sprites.cup, cx, cy, this.pal, false, tint, tintAmt);
     }
   };
 
@@ -1431,10 +1454,21 @@
     },
     draw: function () {
       if (!cap.text || cap.alpha <= 0.01) return;
-      RB.ctx.globalAlpha = cap.alpha;
       var lines = RB.font.wrap(cap.text, 190);
-      for (var i = 0; i < lines.length; i++) {
-        RB.font.drawCentered(lines[i], RB.W / 2, cap.y + i * 11, P.cream, { shadow: 'rgba(0,0,0,0.75)' });
+      // A plate behind the words. Captions land over skies, tarmac and lit
+      // windows, and a drop shadow alone is not enough to hold them.
+      var wMax = 0;
+      for (var i = 0; i < lines.length; i++) wMax = Math.max(wMax, RB.font.width(lines[i]));
+      var bw = wMax + 14, bh = lines.length * 11 + 7;
+      var bx = Math.round((RB.W - bw) / 2), by = Math.round(cap.y - 5);
+      RB.ctx.globalAlpha = cap.alpha * 0.82;
+      RB.rect(bx, by, bw, bh, '#0b0d14');
+      RB.ctx.globalAlpha = cap.alpha * 0.5;
+      RB.rect(bx, by, bw, 1, P.steel1);
+      RB.rect(bx, by + bh - 1, bw, 1, P.steel1);
+      RB.ctx.globalAlpha = cap.alpha;
+      for (var j = 0; j < lines.length; j++) {
+        RB.font.drawCentered(lines[j], RB.W / 2, cap.y + j * 11, P.cream, { shadow: 'rgba(0,0,0,0.75)' });
       }
       RB.ctx.globalAlpha = 1;
     },
@@ -1751,7 +1785,13 @@
   (function () {
     var seed = 12345;
     function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
-    for (var i = 0; i < 70; i++) STARS.push({ x: rnd(), y: rnd() * 0.55, b: 0.3 + rnd() * 0.7 });
+    for (var i = 0; i < 70; i++) {
+      STARS.push({
+        x: rnd(), y: rnd() * 0.55, b: 0.3 + rnd() * 0.7,
+        sp: 0.5 + rnd() * 2.6,     // its own twinkle rate
+        ph: rnd() * 6.283          // ...and its own phase, so they don't pulse together
+      });
+    }
   })();
 
   // Screen-space. Parallax is applied internally and wrapped, so stars drift
@@ -1761,10 +1801,22 @@
     var par = (RB.cam.x * 0.06) % w;
     for (var i = 0; i < STARS.length; i++) {
       var s = STARS[i];
-      var tw = 0.75 + 0.25 * Math.sin(RB.now * 1.3 + i * 2.1);
-      RB.ctx.globalAlpha = alpha * s.b * tw;
+      // Raising the sine to a power makes each star sit dim most of the time
+      // and flare briefly, which reads as sparkle rather than as a pulse.
+      var wave = (Math.sin(RB.now * s.sp + s.ph) + 1) / 2;
+      var tw = 0.30 + 0.70 * Math.pow(wave, 2.4);
       var px = sx + ((s.x * w - par) % w + w) % w;
-      RB.rect(px, y + s.y * h, 1, 1, P.white);
+      var py = y + s.y * h;
+      RB.ctx.globalAlpha = alpha * s.b * tw;
+      RB.rect(px, py, 1, 1, P.white);
+      // At the peak of a flare the brightest stars throw a one-pixel cross.
+      if (tw > 0.93 && s.b > 0.72) {
+        RB.ctx.globalAlpha = alpha * s.b * (tw - 0.93) * 7;
+        RB.rect(px - 1, py, 1, 1, P.white);
+        RB.rect(px + 1, py, 1, 1, P.white);
+        RB.rect(px, py - 1, 1, 1, P.white);
+        RB.rect(px, py + 1, 1, 1, P.white);
+      }
     }
     RB.ctx.globalAlpha = 1;
   };
@@ -1811,7 +1863,8 @@
     elder:   RB.pal({ hair: '#ded8cc', skin: '#f0c090', shirt: '#b08a5c', pants: '#5a4c40', tie: '#8a6a44' }),
     kid:     RB.pal({ hair: '#6a4222', skin: '#f0c090', shirt: '#e08a44', pants: '#3f5488', tie: '#e08a44' }),
     coat:    RB.pal({ hair: '#2a1e18', skin: '#d8a068', shirt: '#c04a4a', pants: '#38344a', tie: '#8a3438' }),
-    crew:    RB.pal({ hair: '#2b2320', skin: '#f0c090', shirt: '#263c74', pants: '#1a2646', tie: '#c04048' })
+    crew:    RB.pal({ hair: '#2b2320', skin: '#f0c090', shirt: '#263c74', pants: '#1a2646', tie: '#c04048' }),
+    barista: RB.pal({ hair: '#4a2a18', skin: '#d8a068', shirt: '#4a6b52', pants: '#3a3a44', tie: '#4a6b52' })
   };
 
   // ===================================================================== curb
@@ -1843,6 +1896,7 @@
     s.enter = function () {
       RB.audio.bed('night');
       RB.state.hasBag = false;
+      RB.state.hasCoffee = false;
 
       van = { x: 300, y: VAN_Y };
       s.doorOpen = 0;
@@ -2255,7 +2309,7 @@
 
       var atExit = cleared && !busy && player.x > EXIT_X - 18;
       s.exitPrompt = atExit;
-      if (atExit && RB.input.pressed('action')) RB.go('gate', { fade: 1.8 });
+      if (atExit && RB.input.pressed('action')) RB.go('coffee', { fade: 1.6 });
     };
 
     s.draw = function () {
@@ -2298,6 +2352,147 @@
 
       if (!RB.dialog.active()) {
         if (s.prompt) RB.drawPrompt(ARCH_X, WALL - 44, 'Z  step through');
+        else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
+      }
+    };
+
+    return s;
+  })();
+
+  // ================================================================== coffee
+  // A kiosk on the way to the gates. Buying is optional; the game will not
+  // stop you walking past, and it will not congratulate you either way.
+  RB.scenes.coffee = (function () {
+    var s = { id: 'coffee' };
+    var player, barista, sitters, script, roomW = 600, bought;
+    var CEIL = 18, WALL = 66, FLOOR = 84;
+    var KIOSK_X = 300, EXIT_X = 566;
+    var steam = 0;
+
+    s.enter = function () {
+      RB.audio.bed('lobby');
+      player = new RB.Actor({ x: 22, y: FLOOR + 20, pal: RB.cast.you, dir: 'right' });
+      player.cup = RB.state.hasCoffee;
+      bought = !!RB.state.hasCoffee;
+      script = null;
+      steam = 0;
+
+      barista = new RB.Actor({ x: KIOSK_X + 30, y: 48, pal: RB.cast.barista, dir: 'down', shadow: false });
+      // Two people already sitting with theirs. Nobody is in a hurry here.
+      sitters = [
+        new RB.Actor({ x: 158, y: FLOOR + 22, pal: RB.cast.elder, dir: 'right', sitting: true }),
+        new RB.Actor({ x: 462, y: FLOOR + 28, pal: RB.cast.student, dir: 'left', sitting: true })
+      ];
+    };
+
+    s.p = function () { return player; };
+
+    var solids = [
+      { x: -20, y: 0, w: 24, h: 300 },
+      { x: 0, y: 0, w: 600, h: FLOOR }
+    ];
+    var bounds = { x0: 10, y0: FLOOR, x1: roomW - 22, y1: 134 };
+
+    s.update = function (dt) {
+      steam += dt;
+      if (script) { script.update(dt); if (script.done) script = null; }
+      var busy = !!script || RB.dialog.active() || RB.transitioning();
+      if (!busy) RB.walk(player, dt, solids, bounds);
+      RB.camFollow(player.x, roomW, dt);
+      barista.update(dt);
+      sitters.forEach(function (a) { a.update(dt); });
+
+      var atKiosk = !bought && !busy && Math.abs(player.x - KIOSK_X) < 30 && player.y < FLOOR + 18;
+      s.prompt = atKiosk;
+      if (atKiosk && RB.input.pressed('action')) {
+        script = new RB.Script(function* () {
+          yield RB.call(function () { player.dir = 'up'; player.moving = false; });
+          yield RB.say(['Coffee, please.'], 'You');
+          yield RB.wait(1.1);
+          yield RB.call(function () { RB.audio.sfx.belt(); });
+          yield RB.wait(1.3);
+          yield RB.say(['Thank you, sir.'], 'Barista');
+          yield RB.call(function () {
+            bought = true;
+            RB.state.hasCoffee = true;
+            player.cup = true;
+          });
+          yield RB.captionFor('Too hot to drink yet.', 4.2, 128);
+        });
+      }
+
+      var atExit = !busy && player.x > EXIT_X - 18;
+      s.exitPrompt = atExit;
+      if (atExit && RB.input.pressed('action')) RB.go('gate', { fade: 1.8 });
+    };
+
+    s.draw = function () {
+      var x0 = RB.cam.x - 8, w = RB.W + 16;
+      RB.clear('#231f2c');
+      A.ceiling(x0, w, CEIL, '#2a2732', '#f0dcb0');
+      A.hall(x0, w, CEIL, WALL, FLOOR, '#3a3040', P.warm4, 0.16);
+
+      A.sign(96, 26, 'GATES  1 - 24  >', 96, '#1a2740', P.cream);
+
+      // Menu board over the counter — deliberately unreadable at this size.
+      RB.wrect(250, 22, 108, 24, '#241c1a');
+      RB.wrect(250, 22, 108, 1, '#4a3a30');
+      for (var r = 0; r < 4; r++) {
+        RB.wrect(256, 26 + r * 5, 44 + (r % 3) * 12, 2, RB.mix(P.cream, '#241c1a', 0.35));
+        RB.wrect(340, 26 + r * 5, 12, 2, RB.mix(P.amber, '#241c1a', 0.3));
+      }
+
+      // Back bar: grinder, urns, a shelf of cups.
+      RB.wrect(262, WALL - 20, 16, 20, '#5a5060');
+      RB.wrect(264, WALL - 24, 12, 5, '#6e6376');
+      RB.wrect(330, WALL - 16, 22, 16, '#7a6f82');
+      RB.wrect(330, WALL - 16, 22, 2, '#9a8ea2');
+      for (var c = 0; c < 5; c++) RB.wrect(292 + c * 7, WALL - 8, 5, 7, '#d8cfc0');
+
+      barista.draw('#e0c898', 0.16);
+      A.counter(250, FLOOR, 116, '#8a6a4a', '#4a3a34');
+
+      // Espresso machine on the worktop, with steam.
+      RB.wrect(268, FLOOR - 36, 30, 16, '#9aa2b0');
+      RB.wrect(268, FLOOR - 36, 30, 2, '#c2c8d4');
+      RB.wrect(272, FLOOR - 32, 8, 7, '#3a4050');
+      RB.wrect(286, FLOOR - 32, 8, 7, '#3a4050');
+      RB.wrect(268, FLOOR - 22, 30, 2, '#6f7684');
+      RB.ctx.globalAlpha = 0.22;
+      for (var st = 0; st < 3; st++) {
+        var sy = FLOOR - 40 - ((steam * 9 + st * 6) % 16);
+        RB.wrect(280 + Math.sin(steam * 2 + st) * 2, sy, 2, 3, P.white);
+      }
+      RB.ctx.globalAlpha = 1;
+
+      A.floor(x0, w, FLOOR, RB.H, '#4a4252', '#423b49', P.cream);
+      RB.ctx.globalAlpha = 0.07;
+      RB.wrect(250, FLOOR, 130, 44, P.warm4);
+      RB.ctx.globalAlpha = 1;
+
+      // Two little cafe tables.
+      [[132, 116], [436, 122]].forEach(function (t) {
+        RB.wrect(t[0], t[1], 28, 3, '#6a5545');
+        RB.wrect(t[0], t[1], 28, 1, '#8a7060');
+        RB.wrect(t[0] + 12, t[1] + 3, 4, 10, '#4a3c32');
+        RB.wrect(t[0] + 8, t[1] + 13, 12, 2, '#4a3c32');
+        RB.drawSprite(RB.sprites.cup, t[0] + 16, t[1] - 8, RB.cast.you);
+      });
+      A.plant(212, FLOOR + 14);
+      A.plant(410, FLOOR + 18);
+
+      A.doorway(EXIT_X, 28, WALL + 16, '#4a5468', 0.12);
+
+      var list = sitters.concat([player]);
+      list.sort(function (a, b) { return a.y - b.y; });
+      list.forEach(function (a) { a.draw('#e0c898', 0.14); });
+
+      RB.ctx.globalAlpha = 0.06;
+      RB.rect(0, 0, RB.W, RB.H, P.warm4);
+      RB.ctx.globalAlpha = 1;
+
+      if (!RB.dialog.active()) {
+        if (s.prompt) RB.drawPrompt(KIOSK_X + 6, WALL - 44, 'Z  coffee');
         else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
       }
     };
@@ -2390,6 +2585,7 @@
       RB.audio.bed('gate');
       RB.audio.music(0.30, 3);
       player = new RB.Actor({ x: 16, y: FLOOR + 18, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       clock = 0;
       seated = false;
       sitBlend = 0;
@@ -2478,7 +2674,7 @@
 
       // --- the arrival, on the clock
       // Taxis in from the right and settles on the stand outside the glass.
-      if (clock > 30 && plane.x > 606) {
+      if (clock > 70 && plane.x > 606) {
         plane.x += (600 - plane.x) * Math.min(1, dt * 0.30);
         if (plane.x < 612) { plane.x = 600; plane.settled = true; }
       }
@@ -2528,7 +2724,7 @@
 
     // The sky over the whole wait: night -> pre-dawn -> civil twilight.
     function skyNow() {
-      var k = RB.clamp(clock / 62, 0, 1);
+      var k = RB.clamp(clock / 104, 0, 1);
       if (k < 0.5) return A.skyMix('night', 'predawn', k / 0.5);
       return A.skyMix('predawn', 'civil', (k - 0.5) / 0.5);
     }
@@ -2540,7 +2736,7 @@
       var ramp = skyNow();
       var horizon = vy + vh * 0.52;
       RB.vgrad(vx - RB.cam.x, vy, vw, horizon - vy, ramp, 10);
-      A.stars(0, RB.W, vy, (horizon - vy) * 0.8, RB.clamp(1 - clock / 40, 0, 1) * 0.9);
+      A.stars(0, RB.W, vy, (horizon - vy) * 0.8, RB.clamp(1 - clock / 76, 0, 1) * 0.9);
 
       // Distant terminal and tower. Silhouettes only a shade darker than the
       // sky, with their own lit windows, so they read as far away rather than
@@ -2628,7 +2824,7 @@
 
       var list = cast.map(function (n) { return n.a; }).concat([player]);
       list.sort(function (a, b) { return a.y - b.y; });
-      var warm = RB.clamp(1 - clock / 62, 0, 1);
+      var warm = RB.clamp(1 - clock / 104, 0, 1);
       list.forEach(function (a) { a.draw(RB.mix('#c9b184', '#8aa0d0', 1 - warm), 0.10); });
 
       // Seated vignette: darken the terminal, leave the window bright, so
@@ -2663,6 +2859,7 @@
     s.enter = function () {
       RB.audio.bed('bridge');
       player = new RB.Actor({ x: 14, y: FLOOR + 10, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       script = new RB.Script(function* () {
         yield RB.wait(2.0);
         yield RB.captionFor('The floor gives slightly underfoot.', 5.0, 132);
@@ -2755,6 +2952,7 @@
       RB.audio.bed('cabin');
       RB.audio.music(0.26, 4);
       player = new RB.Actor({ x: 16, y: 78, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       s.seated = false;
       s.t = 0;
       script = new RB.Script(function* () {
@@ -2979,15 +3177,17 @@
         // Rotate: the ground lets go.
         yield RB.tweenAll([
           RB.tween(v, 'tilt', 1, 3.0, 'out'),
-          RB.tween(v, 'horizon', 132, 3.4, 'out'),
-          RB.tween(v, 'alt', 0.20, 3.4, 'out')
+          RB.tween(v, 'horizon', 122, 3.4, 'out'),
+          RB.tween(v, 'alt', 0.34, 3.4, 'out')
         ]);
         yield RB.call(function () { RB.audio.ambLevel(0.55, 8); });
         yield RB.captionFor('And then it simply stops touching the ground.', 5.4, 20);
         // Climb out.
+        // Keep pushing the horizon down and off frame — the ground has to
+        // actually leave, not settle into a band and sit there.
         yield RB.tweenAll([
-          RB.tween(v, 'alt', 0.75, 12.0, 'inOut'),
-          RB.tween(v, 'horizon', 108, 10.0, 'inOut'),
+          RB.tween(v, 'alt', 0.92, 14.0, 'inOut'),
+          RB.tween(v, 'horizon', 158, 14.0, 'inOut'),
           RB.tween(v, 'speed', 150, 10.0, 'inOut'),
           RB.tween(v, 'tilt', 0.35, 8.0, 'inOut'),
           RB.tween(v, 'sky', 1, 12.0, 'inOut')
@@ -2999,6 +3199,7 @@
         yield RB.wait(4.0);
         yield RB.tweenAll([
           RB.tween(v, 'alt', 1, 6.0, 'inOut'),
+          RB.tween(v, 'horizon', 172, 6.0, 'inOut'),
           RB.tween(v, 'cloud', 0, 4.0, 'inOut')
         ]);
         yield RB.wait(1.0);
@@ -3040,8 +3241,11 @@
       // slide more slowly — the whole sense of height comes from this.
       if (hz < wy + wh) {
         var gh = wy + wh - hz;
-        var compress = 1 - v.alt * 0.82;
-        var apron = RB.mix('#232a3c', ramp[3], 0.18 + v.sky * 0.2);
+        var compress = 1 - v.alt * 0.90;
+        // Atmospheric haze: the further down and away the ground gets, the
+        // more it takes the colour of the air between you and it.
+        var haze = RB.clamp(v.alt * 1.05, 0, 0.86);
+        var apron = RB.mix(RB.mix('#232a3c', ramp[3], 0.18 + v.sky * 0.2), ramp[2], haze);
         RB.rect(wx, hz, ww, gh, apron);
         RB.rect(wx, hz, ww, 1, RB.shade(apron, 0.25));
 
@@ -3061,23 +3265,33 @@
           RB.rect(wx + doff + d * dp, hz + gh * 0.42, Math.max(2, 22 * compress), Math.max(1, 2 * compress), RB.mix(P.white, apron, 0.45));
         }
         // Ground clutter that shrinks with altitude.
-        if (v.alt < 0.6) {
-          var bp = Math.max(20, 120 * compress);
+        if (v.alt < 0.75) {
+          var bp = Math.max(14, 56 * compress);
           var boff = -(v.scroll * 0.55 % bp);
+          // Hangars and terminal blocks standing on the horizon line, hazed
+          // with distance and lit here and there.
+          var bCol = RB.mix(RB.mix(ramp[0], '#0a0c14', 0.30), ramp[2], haze);
+          var bLit = RB.mix('#c9b184', bCol, 0.45);
           for (var b = -1; b < ww / bp + 2; b++) {
             var bxx = wx + boff + b * bp;
-            var bhh = Math.max(1, 14 * compress);
-            RB.rect(bxx, hz - bhh, Math.max(2, 26 * compress), bhh, RB.mix(ramp[0], '#000', 0.4));
-            RB.rect(bxx + 4, hz - bhh - 2, 2, 2, P.amber);
+            var idx = Math.abs(Math.round((boff + b * bp) / bp));
+            var bhh = Math.max(1, (8 + (idx % 3) * 6) * compress);
+            var bww = Math.max(2, (20 + (idx % 4) * 9) * compress);
+            RB.rect(bxx, hz - bhh, bww, bhh + 1, bCol);
+            RB.rect(bxx, hz - bhh, bww, Math.max(1, compress), RB.shade(bCol, 0.20));
+            if (compress > 0.35 && idx % 2 === 0) RB.rect(bxx + 3, hz - bhh + 2, 3, 2, bLit);
+            if (idx % 5 === 0) RB.rect(bxx + bww * 0.5, hz - bhh - 3 * compress, Math.max(1, compress), 3 * compress, bCol);
           }
         }
         // Motion blur streaks at speed.
-        if (v.speed > 180) {
-          var blur = RB.clamp((v.speed - 180) / 260, 0, 1);
-          RB.ctx.globalAlpha = blur * 0.35;
-          for (var sN = 0; sN < 14; sN++) {
-            var sy = hz + ((sN * 37 + v.scroll * 3) % Math.max(1, gh));
-            RB.rect(wx, sy, ww, 1, RB.shade(apron, 0.3));
+        // Short dashes torn along the ground rather than full-width rules.
+        if (v.speed > 200) {
+          var blur = RB.clamp((v.speed - 200) / 280, 0, 1);
+          RB.ctx.globalAlpha = blur * 0.22;
+          for (var sN = 0; sN < 18; sN++) {
+            var sy = hz + ((sN * 29 + v.scroll * 2.2) % Math.max(1, gh));
+            var sxx = wx + ((sN * 71 + v.scroll * 6) % (ww + 60)) - 30;
+            RB.rect(sxx, sy, 24 + (sN % 4) * 14, 1, RB.shade(apron, 0.35));
           }
           RB.ctx.globalAlpha = 1;
         }
@@ -3088,15 +3302,20 @@
       // not a camera.
       drawWing(wx, wy, ww, wh);
 
-      // Cloud layer.
+      // Cloud layer. You are climbing through it, so the cloud streaks
+      // downward past the glass rather than drifting sideways — and it is
+      // drawn as torn bands, never as boxes.
       if (v.cloud > 0.01) {
-        RB.ctx.globalAlpha = RB.clamp(v.cloud, 0, 1) * 0.92;
-        for (var c = 0; c < 5; c++) {
-          var cy = wy + ((c * 47 + v.scroll * 0.5 * (1 + c * 0.3)) % (wh + 60)) - 30;
-          var cw = 60 + c * 30;
-          var cx = wx + ((c * 83 + v.scroll * 0.2) % (ww + 120)) - 60;
-          puff(cx, cy, cw, 16 + c * 4, RB.mix('#8d9ab4', ramp[2], 0.35));
+        var cAmt = RB.clamp(v.cloud, 0, 1);
+        var cCol = RB.mix('#9aa6bd', ramp[2], 0.30);
+        for (var c = 0; c < 7; c++) {
+          var speed = 26 + c * 17;
+          var cy = wy - 40 + ((s.t * speed + c * 53) % (wh + 90));
+          wisp(wx, ww, cy, 10 + (c % 3) * 9, cCol, cAmt * (0.16 + (c % 3) * 0.10), c * 37);
         }
+        // At the thickest point the whole window greys over.
+        RB.ctx.globalAlpha = cAmt * 0.45;
+        RB.rect(wx, wy, ww, wh, cCol);
         RB.ctx.globalAlpha = 1;
       }
     }
@@ -3150,13 +3369,20 @@
     }
     s.wingAt = wingAt;
 
-    function puff(x, y, w, h, c) {
-      RB.ctx.fillStyle = c;
-      for (var i = 0; i < 7; i++) {
-        var pw = w * (0.3 + 0.5 * Math.sin(i * 1.7 + 1));
-        var ph = h * (0.5 + 0.5 * Math.cos(i * 2.1));
-        RB.ctx.fillRect(Math.round(x + (i / 7) * w * 0.8), Math.round(y + Math.sin(i * 1.3) * h * 0.4), Math.round(Math.abs(pw)), Math.round(Math.abs(ph)) + 3);
+    // A torn band of cloud: both edges follow a sum of sines, so it reads as
+    // vapour rather than as a rectangle with the opacity turned down.
+    function wisp(x0, w, y, h, col, alpha, phase) {
+      if (alpha <= 0.01) return;
+      RB.ctx.globalAlpha = alpha;
+      RB.ctx.fillStyle = col;
+      for (var i = 0; i < w; i++) {
+        var u = i + phase;
+        var top = y + Math.sin(u * 0.055 + phase) * 3.0 + Math.sin(u * 0.019) * 4.5;
+        var thick = h + Math.sin(u * 0.041 + 2.1) * (h * 0.45) + Math.sin(u * 0.11) * 2.0;
+        if (thick < 1) continue;
+        RB.ctx.fillRect(x0 + i, Math.round(top), 1, Math.round(thick));
       }
+      RB.ctx.globalAlpha = 1;
     }
 
     function roundRect(x, y, w, h, r, cont) {

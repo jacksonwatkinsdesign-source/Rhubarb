@@ -19,6 +19,7 @@
       RB.audio.bed('cabin');
       RB.audio.music(0.26, 4);
       player = new RB.Actor({ x: 16, y: 78, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       s.seated = false;
       s.t = 0;
       script = new RB.Script(function* () {
@@ -243,15 +244,17 @@
         // Rotate: the ground lets go.
         yield RB.tweenAll([
           RB.tween(v, 'tilt', 1, 3.0, 'out'),
-          RB.tween(v, 'horizon', 132, 3.4, 'out'),
-          RB.tween(v, 'alt', 0.20, 3.4, 'out')
+          RB.tween(v, 'horizon', 122, 3.4, 'out'),
+          RB.tween(v, 'alt', 0.34, 3.4, 'out')
         ]);
         yield RB.call(function () { RB.audio.ambLevel(0.55, 8); });
         yield RB.captionFor('And then it simply stops touching the ground.', 5.4, 20);
         // Climb out.
+        // Keep pushing the horizon down and off frame — the ground has to
+        // actually leave, not settle into a band and sit there.
         yield RB.tweenAll([
-          RB.tween(v, 'alt', 0.75, 12.0, 'inOut'),
-          RB.tween(v, 'horizon', 108, 10.0, 'inOut'),
+          RB.tween(v, 'alt', 0.92, 14.0, 'inOut'),
+          RB.tween(v, 'horizon', 158, 14.0, 'inOut'),
           RB.tween(v, 'speed', 150, 10.0, 'inOut'),
           RB.tween(v, 'tilt', 0.35, 8.0, 'inOut'),
           RB.tween(v, 'sky', 1, 12.0, 'inOut')
@@ -263,6 +266,7 @@
         yield RB.wait(4.0);
         yield RB.tweenAll([
           RB.tween(v, 'alt', 1, 6.0, 'inOut'),
+          RB.tween(v, 'horizon', 172, 6.0, 'inOut'),
           RB.tween(v, 'cloud', 0, 4.0, 'inOut')
         ]);
         yield RB.wait(1.0);
@@ -304,8 +308,11 @@
       // slide more slowly — the whole sense of height comes from this.
       if (hz < wy + wh) {
         var gh = wy + wh - hz;
-        var compress = 1 - v.alt * 0.82;
-        var apron = RB.mix('#232a3c', ramp[3], 0.18 + v.sky * 0.2);
+        var compress = 1 - v.alt * 0.90;
+        // Atmospheric haze: the further down and away the ground gets, the
+        // more it takes the colour of the air between you and it.
+        var haze = RB.clamp(v.alt * 1.05, 0, 0.86);
+        var apron = RB.mix(RB.mix('#232a3c', ramp[3], 0.18 + v.sky * 0.2), ramp[2], haze);
         RB.rect(wx, hz, ww, gh, apron);
         RB.rect(wx, hz, ww, 1, RB.shade(apron, 0.25));
 
@@ -325,23 +332,33 @@
           RB.rect(wx + doff + d * dp, hz + gh * 0.42, Math.max(2, 22 * compress), Math.max(1, 2 * compress), RB.mix(P.white, apron, 0.45));
         }
         // Ground clutter that shrinks with altitude.
-        if (v.alt < 0.6) {
-          var bp = Math.max(20, 120 * compress);
+        if (v.alt < 0.75) {
+          var bp = Math.max(14, 56 * compress);
           var boff = -(v.scroll * 0.55 % bp);
+          // Hangars and terminal blocks standing on the horizon line, hazed
+          // with distance and lit here and there.
+          var bCol = RB.mix(RB.mix(ramp[0], '#0a0c14', 0.30), ramp[2], haze);
+          var bLit = RB.mix('#c9b184', bCol, 0.45);
           for (var b = -1; b < ww / bp + 2; b++) {
             var bxx = wx + boff + b * bp;
-            var bhh = Math.max(1, 14 * compress);
-            RB.rect(bxx, hz - bhh, Math.max(2, 26 * compress), bhh, RB.mix(ramp[0], '#000', 0.4));
-            RB.rect(bxx + 4, hz - bhh - 2, 2, 2, P.amber);
+            var idx = Math.abs(Math.round((boff + b * bp) / bp));
+            var bhh = Math.max(1, (8 + (idx % 3) * 6) * compress);
+            var bww = Math.max(2, (20 + (idx % 4) * 9) * compress);
+            RB.rect(bxx, hz - bhh, bww, bhh + 1, bCol);
+            RB.rect(bxx, hz - bhh, bww, Math.max(1, compress), RB.shade(bCol, 0.20));
+            if (compress > 0.35 && idx % 2 === 0) RB.rect(bxx + 3, hz - bhh + 2, 3, 2, bLit);
+            if (idx % 5 === 0) RB.rect(bxx + bww * 0.5, hz - bhh - 3 * compress, Math.max(1, compress), 3 * compress, bCol);
           }
         }
         // Motion blur streaks at speed.
-        if (v.speed > 180) {
-          var blur = RB.clamp((v.speed - 180) / 260, 0, 1);
-          RB.ctx.globalAlpha = blur * 0.35;
-          for (var sN = 0; sN < 14; sN++) {
-            var sy = hz + ((sN * 37 + v.scroll * 3) % Math.max(1, gh));
-            RB.rect(wx, sy, ww, 1, RB.shade(apron, 0.3));
+        // Short dashes torn along the ground rather than full-width rules.
+        if (v.speed > 200) {
+          var blur = RB.clamp((v.speed - 200) / 280, 0, 1);
+          RB.ctx.globalAlpha = blur * 0.22;
+          for (var sN = 0; sN < 18; sN++) {
+            var sy = hz + ((sN * 29 + v.scroll * 2.2) % Math.max(1, gh));
+            var sxx = wx + ((sN * 71 + v.scroll * 6) % (ww + 60)) - 30;
+            RB.rect(sxx, sy, 24 + (sN % 4) * 14, 1, RB.shade(apron, 0.35));
           }
           RB.ctx.globalAlpha = 1;
         }
@@ -352,15 +369,20 @@
       // not a camera.
       drawWing(wx, wy, ww, wh);
 
-      // Cloud layer.
+      // Cloud layer. You are climbing through it, so the cloud streaks
+      // downward past the glass rather than drifting sideways — and it is
+      // drawn as torn bands, never as boxes.
       if (v.cloud > 0.01) {
-        RB.ctx.globalAlpha = RB.clamp(v.cloud, 0, 1) * 0.92;
-        for (var c = 0; c < 5; c++) {
-          var cy = wy + ((c * 47 + v.scroll * 0.5 * (1 + c * 0.3)) % (wh + 60)) - 30;
-          var cw = 60 + c * 30;
-          var cx = wx + ((c * 83 + v.scroll * 0.2) % (ww + 120)) - 60;
-          puff(cx, cy, cw, 16 + c * 4, RB.mix('#8d9ab4', ramp[2], 0.35));
+        var cAmt = RB.clamp(v.cloud, 0, 1);
+        var cCol = RB.mix('#9aa6bd', ramp[2], 0.30);
+        for (var c = 0; c < 7; c++) {
+          var speed = 26 + c * 17;
+          var cy = wy - 40 + ((s.t * speed + c * 53) % (wh + 90));
+          wisp(wx, ww, cy, 10 + (c % 3) * 9, cCol, cAmt * (0.16 + (c % 3) * 0.10), c * 37);
         }
+        // At the thickest point the whole window greys over.
+        RB.ctx.globalAlpha = cAmt * 0.45;
+        RB.rect(wx, wy, ww, wh, cCol);
         RB.ctx.globalAlpha = 1;
       }
     }
@@ -414,13 +436,20 @@
     }
     s.wingAt = wingAt;
 
-    function puff(x, y, w, h, c) {
-      RB.ctx.fillStyle = c;
-      for (var i = 0; i < 7; i++) {
-        var pw = w * (0.3 + 0.5 * Math.sin(i * 1.7 + 1));
-        var ph = h * (0.5 + 0.5 * Math.cos(i * 2.1));
-        RB.ctx.fillRect(Math.round(x + (i / 7) * w * 0.8), Math.round(y + Math.sin(i * 1.3) * h * 0.4), Math.round(Math.abs(pw)), Math.round(Math.abs(ph)) + 3);
+    // A torn band of cloud: both edges follow a sum of sines, so it reads as
+    // vapour rather than as a rectangle with the opacity turned down.
+    function wisp(x0, w, y, h, col, alpha, phase) {
+      if (alpha <= 0.01) return;
+      RB.ctx.globalAlpha = alpha;
+      RB.ctx.fillStyle = col;
+      for (var i = 0; i < w; i++) {
+        var u = i + phase;
+        var top = y + Math.sin(u * 0.055 + phase) * 3.0 + Math.sin(u * 0.019) * 4.5;
+        var thick = h + Math.sin(u * 0.041 + 2.1) * (h * 0.45) + Math.sin(u * 0.11) * 2.0;
+        if (thick < 1) continue;
+        RB.ctx.fillRect(x0 + i, Math.round(top), 1, Math.round(thick));
       }
+      RB.ctx.globalAlpha = 1;
     }
 
     function roundRect(x, y, w, h, r, cont) {

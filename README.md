@@ -24,7 +24,9 @@ elements rather than drawn into the framebuffer, so they stay finger-sized
 however far the game is scaled up, and every active touch is hit-tested each
 event — which is what makes holding a direction while tapping the button work.
 
-One playthrough is roughly 6–10 minutes.
+Buying a coffee on the way to the gates is optional. If you do, you carry the cup for the rest of the trip.
+
+One playthrough is roughly 8–12 minutes.
 
 There is exactly one mechanic worth knowing: **while you are sitting at the
 gate, time moves faster.** The sky changes, the aircraft taxis in, and boarding
@@ -33,7 +35,7 @@ points the opposite way to every other game's.
 
 ## The level
 
-`title → curb → checkin → security → gate → jetbridge → cabin → takeoff → sunrise`
+`title → curb → checkin → security → coffee → gate → jetbridge → cabin → takeoff → sunrise`
 
 The whole thing arcs from night to sunrise, and most of that is palette rather
 than geometry. Six named passengers are placed at the gate and then again in
@@ -50,7 +52,7 @@ src/touch.js          on-screen d-pad and button for touch devices
 src/sprites.js        16x24 body template + palette-swap actors
 src/audio.js          chiptune pad engine and per-scene ambience
 src/world.js          scene framework, dialogue, and the airport art vocabulary
-src/scenes_ground.js  curb, check-in, security
+src/scenes_ground.js  curb, check-in, security, the coffee kiosk
 src/scenes_gate.js    concourse, the wait, jetbridge
 src/scenes_flight.js  cabin, takeoff, sunrise
 src/game.js           title screen and main loop

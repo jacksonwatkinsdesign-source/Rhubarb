@@ -152,10 +152,21 @@
     },
     draw: function () {
       if (!cap.text || cap.alpha <= 0.01) return;
-      RB.ctx.globalAlpha = cap.alpha;
       var lines = RB.font.wrap(cap.text, 190);
-      for (var i = 0; i < lines.length; i++) {
-        RB.font.drawCentered(lines[i], RB.W / 2, cap.y + i * 11, P.cream, { shadow: 'rgba(0,0,0,0.75)' });
+      // A plate behind the words. Captions land over skies, tarmac and lit
+      // windows, and a drop shadow alone is not enough to hold them.
+      var wMax = 0;
+      for (var i = 0; i < lines.length; i++) wMax = Math.max(wMax, RB.font.width(lines[i]));
+      var bw = wMax + 14, bh = lines.length * 11 + 7;
+      var bx = Math.round((RB.W - bw) / 2), by = Math.round(cap.y - 5);
+      RB.ctx.globalAlpha = cap.alpha * 0.82;
+      RB.rect(bx, by, bw, bh, '#0b0d14');
+      RB.ctx.globalAlpha = cap.alpha * 0.5;
+      RB.rect(bx, by, bw, 1, P.steel1);
+      RB.rect(bx, by + bh - 1, bw, 1, P.steel1);
+      RB.ctx.globalAlpha = cap.alpha;
+      for (var j = 0; j < lines.length; j++) {
+        RB.font.drawCentered(lines[j], RB.W / 2, cap.y + j * 11, P.cream, { shadow: 'rgba(0,0,0,0.75)' });
       }
       RB.ctx.globalAlpha = 1;
     },
@@ -472,7 +483,13 @@
   (function () {
     var seed = 12345;
     function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
-    for (var i = 0; i < 70; i++) STARS.push({ x: rnd(), y: rnd() * 0.55, b: 0.3 + rnd() * 0.7 });
+    for (var i = 0; i < 70; i++) {
+      STARS.push({
+        x: rnd(), y: rnd() * 0.55, b: 0.3 + rnd() * 0.7,
+        sp: 0.5 + rnd() * 2.6,     // its own twinkle rate
+        ph: rnd() * 6.283          // ...and its own phase, so they don't pulse together
+      });
+    }
   })();
 
   // Screen-space. Parallax is applied internally and wrapped, so stars drift
@@ -482,10 +499,22 @@
     var par = (RB.cam.x * 0.06) % w;
     for (var i = 0; i < STARS.length; i++) {
       var s = STARS[i];
-      var tw = 0.75 + 0.25 * Math.sin(RB.now * 1.3 + i * 2.1);
-      RB.ctx.globalAlpha = alpha * s.b * tw;
+      // Raising the sine to a power makes each star sit dim most of the time
+      // and flare briefly, which reads as sparkle rather than as a pulse.
+      var wave = (Math.sin(RB.now * s.sp + s.ph) + 1) / 2;
+      var tw = 0.30 + 0.70 * Math.pow(wave, 2.4);
       var px = sx + ((s.x * w - par) % w + w) % w;
-      RB.rect(px, y + s.y * h, 1, 1, P.white);
+      var py = y + s.y * h;
+      RB.ctx.globalAlpha = alpha * s.b * tw;
+      RB.rect(px, py, 1, 1, P.white);
+      // At the peak of a flare the brightest stars throw a one-pixel cross.
+      if (tw > 0.93 && s.b > 0.72) {
+        RB.ctx.globalAlpha = alpha * s.b * (tw - 0.93) * 7;
+        RB.rect(px - 1, py, 1, 1, P.white);
+        RB.rect(px + 1, py, 1, 1, P.white);
+        RB.rect(px, py - 1, 1, 1, P.white);
+        RB.rect(px, py + 1, 1, 1, P.white);
+      }
     }
     RB.ctx.globalAlpha = 1;
   };
