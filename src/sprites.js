@@ -246,8 +246,9 @@
   RB.drawSprite = function (rows, x, y, pal, flip, tint, tintAmt) {
     var ctx = RB.ctx;
     var w = rows[0].length, h = rows.length;
-    var px = Math.round(x - RB.cam.x - (w - 12) / 2);
-    var py = Math.round(y - RB.cam.y - (h - 18));
+    var isChar = (w === W);
+    var px = Math.round(x - RB.cam.x - (isChar ? (W - 12) / 2 : 0));
+    var py = Math.round(y - RB.cam.y - (isChar ? (H - 18) : 0));
     if (px + w < 0 || px > RB.W || py + h < 0 || py > RB.H) return;
     var cache = {};
     for (var ry = 0; ry < h; ry++) {
@@ -320,13 +321,14 @@
     RB.drawSprite(rows, this.x, this.y + bob, this.pal, flip, tint, tintAmt);
 
     if (this.bag && !this.sitting) {
-      var bx = this.x + (flip ? 12 : -10);
-      RB.drawSprite(RB.sprites.bag, bx, this.y + 6, this.pal, flip, tint, tintAmt);
+      var bx = this.x + (flip ? 13 : -11);
+      RB.drawSprite(RB.sprites.bag, bx, this.y + 4, this.pal, flip, tint, tintAmt);
     }
-    // Held out at chest height, on the side you're facing.
+    // Anchored to the hand pixels: the down/up sprites put a hand at column
+    // 13 row 15, the side sprite at column 11. The cup overlaps that grip.
     if (this.cup) {
-      var cx = this.x + (this.dir === 'left' ? -5 : this.dir === 'right' ? 11 : 10);
-      var cy = this.y + (this.sitting ? 12 : 8);
+      var cx = this.x + (this.dir === 'left' ? -1 : this.dir === 'right' ? 8 : 7);
+      var cy = this.y + (this.sitting ? 7 : 3);
       RB.drawSprite(RB.sprites.cup, cx, cy, this.pal, false, tint, tintAmt);
     }
   };

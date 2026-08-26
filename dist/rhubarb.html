@@ -931,8 +931,9 @@
   RB.drawSprite = function (rows, x, y, pal, flip, tint, tintAmt) {
     var ctx = RB.ctx;
     var w = rows[0].length, h = rows.length;
-    var px = Math.round(x - RB.cam.x - (w - 12) / 2);
-    var py = Math.round(y - RB.cam.y - (h - 18));
+    var isChar = (w === W);
+    var px = Math.round(x - RB.cam.x - (isChar ? (W - 12) / 2 : 0));
+    var py = Math.round(y - RB.cam.y - (isChar ? (H - 18) : 0));
     if (px + w < 0 || px > RB.W || py + h < 0 || py > RB.H) return;
     var cache = {};
     for (var ry = 0; ry < h; ry++) {
@@ -1005,13 +1006,14 @@
     RB.drawSprite(rows, this.x, this.y + bob, this.pal, flip, tint, tintAmt);
 
     if (this.bag && !this.sitting) {
-      var bx = this.x + (flip ? 12 : -10);
-      RB.drawSprite(RB.sprites.bag, bx, this.y + 6, this.pal, flip, tint, tintAmt);
+      var bx = this.x + (flip ? 13 : -11);
+      RB.drawSprite(RB.sprites.bag, bx, this.y + 4, this.pal, flip, tint, tintAmt);
     }
-    // Held out at chest height, on the side you're facing.
+    // Anchored to the hand pixels: the down/up sprites put a hand at column
+    // 13 row 15, the side sprite at column 11. The cup overlaps that grip.
     if (this.cup) {
-      var cx = this.x + (this.dir === 'left' ? -5 : this.dir === 'right' ? 11 : 10);
-      var cy = this.y + (this.sitting ? 12 : 8);
+      var cx = this.x + (this.dir === 'left' ? -1 : this.dir === 'right' ? 8 : 7);
+      var cy = this.y + (this.sitting ? 7 : 3);
       RB.drawSprite(RB.sprites.cup, cx, cy, this.pal, false, tint, tintAmt);
     }
   };
@@ -1900,6 +1902,20 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  // A cup at rest with steam curling off it. Three wisps on different
+  // phases, drifting up and sideways and fading as they rise.
+  RB.sillCup = function (x, y, t) {
+    RB.drawSprite(RB.sprites.cup, x, y, RB.cast.you);
+    for (var i = 0; i < 3; i++) {
+      var k = ((t * 0.55 + i * 0.34) % 1);
+      var sy = y - 1 - k * 11;
+      var sx = x + 3 + Math.sin(t * 1.7 + i * 2.2 + k * 3) * 2.2;
+      RB.ctx.globalAlpha = (1 - k) * 0.34;
+      RB.rect(sx, sy, 1, 2, P.white);
+      RB.ctx.globalAlpha = 1;
+    }
+  };
+
   RB.now = 0;
 })(window.RB = window.RB || {});
 
@@ -2316,60 +2332,105 @@
     var CEIL = 18, WALL = 66, FLOOR = 84;
     var ARCH_X = 340, EXIT_X = 546;
 
+    // The line is the point of this room, so it is a real queue: roped into a
+    // single lane you cannot walk around, one passport at a time, and you go
+    // last. The cadence is deliberately unhurried.
+    var SERVE_X = ARCH_X - 26, GAP = 30;
+    var LANE_TOP = 100, LANE_BOT = 126, LANE_X0 = 148, LANE_X1 = ARCH_X + 22;
+    var PRESENT = 3.4, SHUFFLE = 2.0, CLEAR = 2.0;
+    var qPhase, qTimer;
+
     s.enter = function () {
       RB.audio.bed('hall');
-      player = new RB.Actor({ x: 22, y: FLOOR + 24, pal: RB.cast.you, dir: 'right' });
+      player = new RB.Actor({ x: 22, y: 102, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       cleared = false;
       flash = 0;
       script = null;
+      qPhase = 'shuffle';
+      qTimer = 0;
       s.t = 0;
 
       queue = [
-        { a: new RB.Actor({ x: 262, y: FLOOR + 14, pal: RB.cast.suit, dir: 'right' }), goal: 262 },
-        { a: new RB.Actor({ x: 226, y: FLOOR + 22, pal: RB.cast.elder, dir: 'right' }), goal: 226 },
-        { a: new RB.Actor({ x: 190, y: FLOOR + 30, pal: RB.cast.kid, dir: 'right' }), goal: 190 }
+        new RB.Actor({ x: SERVE_X - 6, y: 98, pal: RB.cast.suit, dir: 'right' }),
+        new RB.Actor({ x: SERVE_X - GAP - 8, y: 102, pal: RB.cast.elder, dir: 'right' }),
+        new RB.Actor({ x: SERVE_X - GAP * 2 - 10, y: 106, pal: RB.cast.kid, dir: 'right' })
       ];
-      guard = new RB.Actor({ x: ARCH_X + 40, y: FLOOR + 6, pal: RB.cast.guard, dir: 'left' });
+      guard = new RB.Actor({ x: ARCH_X + 6, y: 96, pal: RB.cast.guard, dir: 'left' });
     };
 
     s.p = function () { return player; };
+    s.dbg = function () { return { queued: queue.filter(function (a) { return !a.hidden; }).length, cleared: cleared, phase: qPhase, px: Math.round(player.x), py: Math.round(player.y) }; };
 
-    var solids = [
+    var walls = [
       { x: -20, y: 0, w: 24, h: 300 },
-      { x: 0, y: 0, w: 580, h: FLOOR }
+      { x: 0, y: 0, w: 580, h: FLOOR },
+      // The rope lane. Without these you can simply walk round the queue.
+      { x: LANE_X0, y: FLOOR, w: LANE_X1 - LANE_X0, h: LANE_TOP - FLOOR },
+      { x: LANE_X0, y: LANE_BOT, w: LANE_X1 - LANE_X0, h: 30 }
     ];
-    var bounds = { x0: 10, y0: FLOOR, x1: roomW - 22, y1: 134 };
+    var bounds = { x0: 10, y0: 86, x1: roomW - 22, y1: 132 };
 
     s.update = function (dt) {
       s.t += dt;
+      qTimer += dt;
       if (script) { script.update(dt); if (script.done) script = null; }
-      if (!script && !RB.dialog.active() && !RB.transitioning()) RB.walk(player, dt, solids, bounds);
-      RB.camFollow(player.x, roomW, dt);
       if (flash > 0) flash -= dt * 2;
 
-      var advance = Math.min(3, Math.floor(s.t / 3.2));
-      queue.forEach(function (q) {
-        var target = q.goal + advance * 36;
-        if (target > ARCH_X + 44) { q.a.hidden = true; return; }
-        q.a.moving = Math.abs(target - q.a.x) > 0.4;
-        q.a.x += (target - q.a.x) * Math.min(1, dt * 2.2);
-        q.a.dir = 'right';
-        q.a.update(dt);
-      });
+      var live = queue.filter(function (a) { return !a.hidden; });
+
+      // One person at the desk at a time: shuffle up, hand it over, move on.
+      if (live.length) {
+        if (qPhase === 'shuffle' && qTimer > SHUFFLE) { qPhase = 'present'; qTimer = 0; }
+        else if (qPhase === 'present' && qTimer > PRESENT) {
+          qPhase = 'clear'; qTimer = 0; RB.audio.sfx.scan(); flash = 1;
+        } else if (qPhase === 'clear' && qTimer > CLEAR) {
+          live[0].hidden = true; qPhase = 'shuffle'; qTimer = 0;
+        }
+      }
+
+      for (var i = 0; i < live.length; i++) {
+        var q = live[i];
+        var tx = (i === 0 && qPhase === 'clear') ? ARCH_X + 52 : SERVE_X - i * GAP;
+        q.dir = 'right';
+        q.moving = Math.abs(tx - q.x) > 0.6;
+        q.x += (tx - q.x) * Math.min(1, dt * 1.8);
+        // The person at the desk turns to face the officer.
+        if (i === 0 && qPhase === 'present') { q.dir = 'right'; q.moving = false; }
+        q.update(dt);
+      }
+      guard.dir = 'left';
       guard.update(dt);
 
+      // Anyone still in the line is solid, so you queue behind them.
+      var solids = walls.slice();
+      for (var j = 0; j < live.length; j++) {
+        solids.push({ x: live[j].x + 2, y: live[j].y + 6, w: 13, h: 18 });
+      }
+      // The desk itself is closed until you have been seen. Without this you
+      // can walk straight through in the gap after the person in front leaves.
+      if (!cleared) solids.push({ x: ARCH_X - 16, y: FLOOR, w: 32, h: 62 });
+
       var busy = !!script || RB.dialog.active() || RB.transitioning();
-      var atArch = !cleared && !busy && Math.abs(player.x - ARCH_X) < 16;
+      if (!busy) RB.walk(player, dt, solids, bounds);
+      RB.camFollow(player.x, roomW, dt);
+
+      // Your turn only once the line in front of you has gone.
+      var yourTurn = live.length === 0 && !cleared;
+      var atArch = yourTurn && !busy && Math.abs(player.x - SERVE_X) < 22;
       s.prompt = atArch;
+      s.waiting = !cleared && live.length > 0;
       if (atArch && RB.input.pressed('action')) {
         script = new RB.Script(function* () {
-          yield RB.call(function () { player.dir = 'right'; player.moving = true; });
-          yield RB.tween(player, 'x', ARCH_X + 30, 1.6, 'inOut');
-          yield RB.call(function () { player.moving = false; RB.audio.sfx.belt(); flash = 1; });
+          yield RB.call(function () { player.dir = 'right'; player.moving = false; });
           yield RB.say(['Passport, please.'], 'Officer');
-          yield RB.wait(0.7);
+          yield RB.wait(1.4);
+          yield RB.call(function () { RB.audio.sfx.scan(); flash = 1; });
+          yield RB.wait(1.0);
           yield RB.say(['Thank you.'], 'Officer');
-          yield RB.call(function () { cleared = true; });
+          yield RB.call(function () { player.moving = true; });
+          yield RB.tween(player, 'x', ARCH_X + 34, 2.0, 'inOut');
+          yield RB.call(function () { player.moving = false; cleared = true; });
         });
       }
 
@@ -2387,7 +2448,6 @@
       A.sign(140, 26, 'SECURITY', 58, '#1a2740', P.cream);
       A.sign(444, 26, 'GATES  1 - 24  >', 96, '#1a2740', P.cream);
 
-      // X-ray belt against the wall, running the whole width of the lane.
       RB.wrect(ARCH_X + 44, WALL - 6, 104, 6, '#39445c');
       RB.wrect(ARCH_X + 44, WALL, 104, 5, '#1b2230');
       for (var bx = ARCH_X + 44 + ((s.t * 22) % 12); bx < ARCH_X + 148; bx += 12) RB.wrect(bx, WALL - 5, 6, 4, '#4a5670');
@@ -2395,14 +2455,19 @@
       RB.wrect(ARCH_X + 62, WALL - 20, 36, 12, '#161d2c');
 
       A.floor(x0, w, FLOOR, RB.H, '#333a52', '#2e344a', P.white);
-      A.queueLine(150, 116, 6, 32);
 
-      // Scanner arch.
+      // The lane, drawn as the rope it collides as.
+      A.queueLine(LANE_X0, LANE_TOP - 12, 7, 30);
+      A.queueLine(LANE_X0, LANE_BOT, 7, 30);
+
+      // Podium the officer stands behind.
+      RB.wrect(ARCH_X - 4, 104, 22, 14, '#4a5468');
+      RB.wrect(ARCH_X - 4, 102, 22, 3, '#6c7488');
+
       RB.wrect(ARCH_X - 18, WALL - 26, 7, FLOOR - WALL + 32, '#8fa0bb');
       RB.wrect(ARCH_X + 12, WALL - 26, 7, FLOOR - WALL + 32, '#8fa0bb');
       RB.wrect(ARCH_X - 18, WALL - 32, 37, 7, '#a8b6cc');
       RB.wrect(ARCH_X - 18, WALL - 32, 37, 1, P.white);
-      RB.wrect(ARCH_X - 18, WALL - 26, 7, 1, '#c4cede');
       if (flash > 0) {
         RB.ctx.globalAlpha = 0.32 * flash;
         RB.wrect(ARCH_X - 12, WALL - 26, 25, FLOOR - WALL + 30, P.green);
@@ -2411,13 +2476,21 @@
 
       A.doorway(EXIT_X, 28, WALL + 16, '#4a5468', 0.12);
 
-      var list = queue.map(function (q) { return q.a; }).filter(function (a) { return !a.hidden; });
+      var list = queue.filter(function (a) { return !a.hidden; });
       list.push(guard, player);
       list.sort(function (a, b) { return a.y - b.y; });
       list.forEach(function (a) { a.draw(P.steel3, 0.07); });
 
+      // A passport changing hands, at the moment it changes hands.
+      var live = queue.filter(function (a) { return !a.hidden; });
+      if (qPhase === 'present' && live.length) {
+        var hx = live[0].x + 14, hy = live[0].y + 4;
+        RB.wrect(hx, hy, 5, 4, '#2a3f6a');
+        RB.wrect(hx, hy, 5, 1, '#4a63a0');
+      }
+
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(ARCH_X, WALL - 44, 'Z  step through');
+        if (s.prompt) RB.drawPrompt(SERVE_X + 6, WALL - 44, 'Z  passport');
         else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
       }
     };
@@ -3043,7 +3116,7 @@
     };
 
     function seated(x, pal) {
-      return new RB.Actor({ x: x, y: 58, pal: pal, dir: 'down', sitting: true, shadow: false });
+      return new RB.Actor({ x: x + 12, y: 59, pal: pal, dir: 'right', sitting: true, shadow: false });
     }
 
     s.p = function () { return player; };
@@ -3070,8 +3143,9 @@
         s.seated = true;
         script = new RB.Script(function* () {
           yield RB.call(function () {
-            player.sitting = true; player.moving = false; player.dir = 'down';
-            player.x = MY_SEAT; player.y = 58; player.shadow = false;
+            player.sitting = true; player.moving = false;
+            player.dir = 'right';
+            player.x = MY_SEAT + 12; player.y = 59; player.shadow = false;
           });
           yield RB.wait(1.6);
           yield RB.captionFor('You put your head against the glass.', 4.6, 132);
@@ -3164,64 +3238,77 @@
       if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'Z  sit');
     };
 
-    // Seat fabric. Three tones plus a seam, and a gap between seats — at
-    // 26 wide on a 30 pitch they used to butt together into a wall.
+    // Seat fabric, three tones plus a seam. Seats are drawn in profile: the
+    // back is a slab on the left, the cushion runs right from it, and the
+    // passenger sits between the two passes facing the nose.
     var FAR = '#41597a', NEARC = '#33485f';
 
     function farShells(x0, w) {
       var c = FAR, hi = RB.shade(c, 0.24), lo = RB.shade(c, -0.30), seam = RB.shade(c, -0.52);
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        // Headrest, sitting proud of the back with its own cover.
-        RB.wrect(x + 5, HEAD, 20, 13, c);
-        RB.wrect(x + 5, HEAD, 20, 1, hi);
-        RB.wrect(x + 7, HEAD + 2, 16, 8, RB.shade(c, 0.10));
-        RB.wrect(x + 5, HEAD + 12, 20, 1, lo);
-        // Back, with a lit bolster on one side and a shadowed one on the other.
-        RB.wrect(x + 3, BACK, 24, 22, c);
-        RB.wrect(x + 3, BACK, 24, 1, hi);
-        RB.wrect(x + 3, BACK, 3, 22, RB.shade(c, 0.10));
-        RB.wrect(x + 24, BACK, 3, 22, lo);
-        RB.wrect(x + 28, HEAD, 2, AISLE - HEAD, seam);
+        // Headrest, proud of the back and slightly wider.
+        RB.wrect(x + 2, HEAD, 11, 15, c);
+        RB.wrect(x + 2, HEAD, 11, 1, hi);
+        RB.wrect(x + 4, HEAD + 2, 7, 10, RB.shade(c, 0.10));
+        RB.wrect(x + 2, HEAD + 14, 11, 1, lo);
+        // Back.
+        RB.wrect(x + 3, BACK + 2, 9, 21, c);
+        RB.wrect(x + 3, BACK + 2, 2, 21, hi);
+        RB.wrect(x + 10, BACK + 2, 2, 21, lo);
+        // Cushion running forward from it, with a lip at the front edge.
+        RB.wrect(x + 11, 70, 18, 8, RB.shade(c, -0.10));
+        RB.wrect(x + 11, 70, 18, 1, hi);
+        RB.wrect(x + 11, 77, 18, 2, RB.shade(c, -0.42));
+        // Pedestal.
+        RB.wrect(x + 15, 79, 5, 5, RB.shade(c, -0.46));
+        RB.wrect(x + 12, 83, 14, 2, RB.shade(c, -0.55));
+        RB.wrect(x + 29, HEAD, 1, AISLE - HEAD, seam);
       }
     }
 
     function farFronts(x0, w) {
-      var c = FAR, hi = RB.shade(c, 0.20), lo = RB.shade(c, -0.32), lo2 = RB.shade(c, -0.50);
+      var c = FAR, hi = RB.shade(c, 0.22), lo = RB.shade(c, -0.34);
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        // Seat cushion across the lap, then the armrests either side.
-        RB.wrect(x + 2, 74, 26, 8, RB.shade(c, -0.14));
-        RB.wrect(x + 2, 74, 26, 1, hi);
-        RB.wrect(x + 2, 81, 26, 2, lo2);
-        RB.wrect(x + 1, 68, 4, 5, lo);
-        RB.wrect(x + 1, 68, 4, 1, hi);
-        RB.wrect(x + 25, 68, 4, 5, lo);
-        RB.wrect(x + 25, 68, 4, 1, hi);
-        RB.wrect(x + 28, 74, 2, 10, lo2);
+        // Armrest, on the near side of the passenger.
+        RB.wrect(x + 12, 66, 15, 3, lo);
+        RB.wrect(x + 12, 66, 15, 1, hi);
+        RB.wrect(x + 25, 69, 2, 4, lo);
       }
     }
 
-    // The nearest row, from behind. A flat fill read as lockers, so the back
-    // carries a top-to-bottom gradient, a tray seam and a pocket.
+    // The nearest row: same profile, but closer, so wider and heavier. It has
+    // to close off the bottom of the frame — drawn narrow it reads as pillars
+    // standing in front of a void rather than as the row you are beside.
     function nearBacks(x0, w) {
-      var c = NEARC, hi = RB.shade(c, 0.26), lo = RB.shade(c, -0.34), seam = RB.shade(c, -0.55);
-      var h = RB.H - NEAR;
-      RB.wrect(x0, NEAR, w, h, '#1b212c');
-      for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        for (var i = 0; i < h; i++) {
-          RB.wrect(x + 3, NEAR + i, 24, 1, RB.mix(c, RB.shade(c, -0.34), i / h));
-        }
-        RB.wrect(x + 5, NEAR - 2, 20, 14, RB.shade(c, 0.16));      // headrest
-        RB.wrect(x + 5, NEAR - 2, 20, 2, hi);
-        RB.wrect(x + 7, NEAR + 1, 16, 8, RB.shade(c, 0.04));       // cover
-        RB.wrect(x + 5, NEAR + 11, 20, 1, lo);
-        RB.wrect(x + 5, NEAR + 26, 20, 2, lo);                     // tray seam
-        RB.wrect(x + 5, NEAR + 28, 20, 1, RB.shade(c, 0.10));
-        RB.wrect(x + 7, NEAR + 36, 16, 10, RB.shade(c, -0.20));    // seat pocket
-        RB.wrect(x + 7, NEAR + 36, 16, 1, RB.shade(c, 0.12));
-        RB.wrect(x + 28, NEAR - 2, 2, h + 2, seam);
+      var c = NEARC, hi = RB.shade(c, 0.26), lo = RB.shade(c, -0.34), seam = RB.shade(c, -0.58);
+      var floor = '#242a37';
+      RB.wrect(x0, NEAR - 2, w, RB.H - NEAR + 2, floor);
+      for (var fx = Math.floor(x0 / 16) * 16; fx < x0 + w; fx += 16) {
+        RB.wrect(fx, NEAR - 2, 1, RB.H - NEAR + 2, RB.shade(floor, -0.16));
       }
-      RB.ctx.globalAlpha = 0.26;
-      RB.wrect(x0, NEAR - 2, w, 3, '#0b0d14');
+      for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
+        var bh = RB.H - NEAR - 2;
+        for (var i = 0; i < bh; i++) {
+          RB.wrect(x + 2, NEAR + 2 + i, 17, 1, RB.mix(c, RB.shade(c, -0.40), i / bh));
+        }
+        RB.wrect(x + 2, NEAR + 2, 3, bh, hi);
+        RB.wrect(x + 17, NEAR + 2, 2, bh, lo);
+        // Headrest.
+        RB.wrect(x + 1, NEAR - 6, 20, 19, RB.shade(c, 0.16));
+        RB.wrect(x + 1, NEAR - 6, 20, 2, hi);
+        RB.wrect(x + 4, NEAR - 2, 14, 12, RB.shade(c, 0.04));
+        RB.wrect(x + 1, NEAR + 12, 20, 1, lo);
+        // Cushion running forward, and the pocket on the aisle face.
+        RB.wrect(x + 19, NEAR + 28, 13, 11, RB.shade(c, -0.10));
+        RB.wrect(x + 19, NEAR + 28, 13, 1, hi);
+        RB.wrect(x + 19, NEAR + 38, 13, 2, RB.shade(c, -0.46));
+        RB.wrect(x + 22, NEAR + 40, 6, 6, RB.shade(c, -0.50));
+        RB.wrect(x + 5, NEAR + 20, 11, 11, RB.shade(c, -0.24));
+        RB.wrect(x + 5, NEAR + 20, 11, 1, RB.shade(c, 0.12));
+        RB.wrect(x + 32, NEAR - 6, 1, RB.H - NEAR + 6, seam);
+      }
+      RB.ctx.globalAlpha = 0.28;
+      RB.wrect(x0, NEAR - 6, w, 3, '#0b0d14');
       RB.ctx.globalAlpha = 1;
     }
 
@@ -3321,6 +3408,12 @@
 
       drawWindowFrame(wx, wy, ww, wh);
       drawCabinSurround(wx, wy, ww, wh);
+
+      // Anything you carried aboard sits on the ledge, steaming.
+      var cups = RB.state.cupsHeld || 0;
+      for (var c = 0; c < cups; c++) {
+        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
+      }
     };
 
     function drawOutside(wx, wy, ww, wh) {
@@ -3724,7 +3817,7 @@
       // when she collects it.
       var cups = RB.state.cupsHeld || 0;
       for (var c = 0; c < cups; c++) {
-        RB.drawSprite(RB.sprites.cup, wx + 14 + c * 11, wy + wh + 1, RB.cast.you);
+        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
       }
 
       // The attendant, leaning into your view from the aisle. Drawn after the

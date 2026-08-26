@@ -42,7 +42,7 @@
     };
 
     function seated(x, pal) {
-      return new RB.Actor({ x: x, y: 58, pal: pal, dir: 'down', sitting: true, shadow: false });
+      return new RB.Actor({ x: x + 12, y: 59, pal: pal, dir: 'right', sitting: true, shadow: false });
     }
 
     s.p = function () { return player; };
@@ -69,8 +69,9 @@
         s.seated = true;
         script = new RB.Script(function* () {
           yield RB.call(function () {
-            player.sitting = true; player.moving = false; player.dir = 'down';
-            player.x = MY_SEAT; player.y = 58; player.shadow = false;
+            player.sitting = true; player.moving = false;
+            player.dir = 'right';
+            player.x = MY_SEAT + 12; player.y = 59; player.shadow = false;
           });
           yield RB.wait(1.6);
           yield RB.captionFor('You put your head against the glass.', 4.6, 132);
@@ -163,64 +164,77 @@
       if (s.prompt && !RB.dialog.active()) RB.drawPrompt(MY_SEAT + 6, HEAD - 22, 'Z  sit');
     };
 
-    // Seat fabric. Three tones plus a seam, and a gap between seats — at
-    // 26 wide on a 30 pitch they used to butt together into a wall.
+    // Seat fabric, three tones plus a seam. Seats are drawn in profile: the
+    // back is a slab on the left, the cushion runs right from it, and the
+    // passenger sits between the two passes facing the nose.
     var FAR = '#41597a', NEARC = '#33485f';
 
     function farShells(x0, w) {
       var c = FAR, hi = RB.shade(c, 0.24), lo = RB.shade(c, -0.30), seam = RB.shade(c, -0.52);
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        // Headrest, sitting proud of the back with its own cover.
-        RB.wrect(x + 5, HEAD, 20, 13, c);
-        RB.wrect(x + 5, HEAD, 20, 1, hi);
-        RB.wrect(x + 7, HEAD + 2, 16, 8, RB.shade(c, 0.10));
-        RB.wrect(x + 5, HEAD + 12, 20, 1, lo);
-        // Back, with a lit bolster on one side and a shadowed one on the other.
-        RB.wrect(x + 3, BACK, 24, 22, c);
-        RB.wrect(x + 3, BACK, 24, 1, hi);
-        RB.wrect(x + 3, BACK, 3, 22, RB.shade(c, 0.10));
-        RB.wrect(x + 24, BACK, 3, 22, lo);
-        RB.wrect(x + 28, HEAD, 2, AISLE - HEAD, seam);
+        // Headrest, proud of the back and slightly wider.
+        RB.wrect(x + 2, HEAD, 11, 15, c);
+        RB.wrect(x + 2, HEAD, 11, 1, hi);
+        RB.wrect(x + 4, HEAD + 2, 7, 10, RB.shade(c, 0.10));
+        RB.wrect(x + 2, HEAD + 14, 11, 1, lo);
+        // Back.
+        RB.wrect(x + 3, BACK + 2, 9, 21, c);
+        RB.wrect(x + 3, BACK + 2, 2, 21, hi);
+        RB.wrect(x + 10, BACK + 2, 2, 21, lo);
+        // Cushion running forward from it, with a lip at the front edge.
+        RB.wrect(x + 11, 70, 18, 8, RB.shade(c, -0.10));
+        RB.wrect(x + 11, 70, 18, 1, hi);
+        RB.wrect(x + 11, 77, 18, 2, RB.shade(c, -0.42));
+        // Pedestal.
+        RB.wrect(x + 15, 79, 5, 5, RB.shade(c, -0.46));
+        RB.wrect(x + 12, 83, 14, 2, RB.shade(c, -0.55));
+        RB.wrect(x + 29, HEAD, 1, AISLE - HEAD, seam);
       }
     }
 
     function farFronts(x0, w) {
-      var c = FAR, hi = RB.shade(c, 0.20), lo = RB.shade(c, -0.32), lo2 = RB.shade(c, -0.50);
+      var c = FAR, hi = RB.shade(c, 0.22), lo = RB.shade(c, -0.34);
       for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        // Seat cushion across the lap, then the armrests either side.
-        RB.wrect(x + 2, 74, 26, 8, RB.shade(c, -0.14));
-        RB.wrect(x + 2, 74, 26, 1, hi);
-        RB.wrect(x + 2, 81, 26, 2, lo2);
-        RB.wrect(x + 1, 68, 4, 5, lo);
-        RB.wrect(x + 1, 68, 4, 1, hi);
-        RB.wrect(x + 25, 68, 4, 5, lo);
-        RB.wrect(x + 25, 68, 4, 1, hi);
-        RB.wrect(x + 28, 74, 2, 10, lo2);
+        // Armrest, on the near side of the passenger.
+        RB.wrect(x + 12, 66, 15, 3, lo);
+        RB.wrect(x + 12, 66, 15, 1, hi);
+        RB.wrect(x + 25, 69, 2, 4, lo);
       }
     }
 
-    // The nearest row, from behind. A flat fill read as lockers, so the back
-    // carries a top-to-bottom gradient, a tray seam and a pocket.
+    // The nearest row: same profile, but closer, so wider and heavier. It has
+    // to close off the bottom of the frame — drawn narrow it reads as pillars
+    // standing in front of a void rather than as the row you are beside.
     function nearBacks(x0, w) {
-      var c = NEARC, hi = RB.shade(c, 0.26), lo = RB.shade(c, -0.34), seam = RB.shade(c, -0.55);
-      var h = RB.H - NEAR;
-      RB.wrect(x0, NEAR, w, h, '#1b212c');
-      for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
-        for (var i = 0; i < h; i++) {
-          RB.wrect(x + 3, NEAR + i, 24, 1, RB.mix(c, RB.shade(c, -0.34), i / h));
-        }
-        RB.wrect(x + 5, NEAR - 2, 20, 14, RB.shade(c, 0.16));      // headrest
-        RB.wrect(x + 5, NEAR - 2, 20, 2, hi);
-        RB.wrect(x + 7, NEAR + 1, 16, 8, RB.shade(c, 0.04));       // cover
-        RB.wrect(x + 5, NEAR + 11, 20, 1, lo);
-        RB.wrect(x + 5, NEAR + 26, 20, 2, lo);                     // tray seam
-        RB.wrect(x + 5, NEAR + 28, 20, 1, RB.shade(c, 0.10));
-        RB.wrect(x + 7, NEAR + 36, 16, 10, RB.shade(c, -0.20));    // seat pocket
-        RB.wrect(x + 7, NEAR + 36, 16, 1, RB.shade(c, 0.12));
-        RB.wrect(x + 28, NEAR - 2, 2, h + 2, seam);
+      var c = NEARC, hi = RB.shade(c, 0.26), lo = RB.shade(c, -0.34), seam = RB.shade(c, -0.58);
+      var floor = '#242a37';
+      RB.wrect(x0, NEAR - 2, w, RB.H - NEAR + 2, floor);
+      for (var fx = Math.floor(x0 / 16) * 16; fx < x0 + w; fx += 16) {
+        RB.wrect(fx, NEAR - 2, 1, RB.H - NEAR + 2, RB.shade(floor, -0.16));
       }
-      RB.ctx.globalAlpha = 0.26;
-      RB.wrect(x0, NEAR - 2, w, 3, '#0b0d14');
+      for (var x = Math.floor(x0 / PITCH) * PITCH; x < x0 + w; x += PITCH) {
+        var bh = RB.H - NEAR - 2;
+        for (var i = 0; i < bh; i++) {
+          RB.wrect(x + 2, NEAR + 2 + i, 17, 1, RB.mix(c, RB.shade(c, -0.40), i / bh));
+        }
+        RB.wrect(x + 2, NEAR + 2, 3, bh, hi);
+        RB.wrect(x + 17, NEAR + 2, 2, bh, lo);
+        // Headrest.
+        RB.wrect(x + 1, NEAR - 6, 20, 19, RB.shade(c, 0.16));
+        RB.wrect(x + 1, NEAR - 6, 20, 2, hi);
+        RB.wrect(x + 4, NEAR - 2, 14, 12, RB.shade(c, 0.04));
+        RB.wrect(x + 1, NEAR + 12, 20, 1, lo);
+        // Cushion running forward, and the pocket on the aisle face.
+        RB.wrect(x + 19, NEAR + 28, 13, 11, RB.shade(c, -0.10));
+        RB.wrect(x + 19, NEAR + 28, 13, 1, hi);
+        RB.wrect(x + 19, NEAR + 38, 13, 2, RB.shade(c, -0.46));
+        RB.wrect(x + 22, NEAR + 40, 6, 6, RB.shade(c, -0.50));
+        RB.wrect(x + 5, NEAR + 20, 11, 11, RB.shade(c, -0.24));
+        RB.wrect(x + 5, NEAR + 20, 11, 1, RB.shade(c, 0.12));
+        RB.wrect(x + 32, NEAR - 6, 1, RB.H - NEAR + 6, seam);
+      }
+      RB.ctx.globalAlpha = 0.28;
+      RB.wrect(x0, NEAR - 6, w, 3, '#0b0d14');
       RB.ctx.globalAlpha = 1;
     }
 
@@ -320,6 +334,12 @@
 
       drawWindowFrame(wx, wy, ww, wh);
       drawCabinSurround(wx, wy, ww, wh);
+
+      // Anything you carried aboard sits on the ledge, steaming.
+      var cups = RB.state.cupsHeld || 0;
+      for (var c = 0; c < cups; c++) {
+        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
+      }
     };
 
     function drawOutside(wx, wy, ww, wh) {
@@ -723,7 +743,7 @@
       // when she collects it.
       var cups = RB.state.cupsHeld || 0;
       for (var c = 0; c < cups; c++) {
-        RB.drawSprite(RB.sprites.cup, wx + 14 + c * 11, wy + wh + 1, RB.cast.you);
+        RB.sillCup(wx + 14 + c * 11, wy + wh + 1, s.t + c * 1.7);
       }
 
       // The attendant, leaning into your view from the aisle. Drawn after the

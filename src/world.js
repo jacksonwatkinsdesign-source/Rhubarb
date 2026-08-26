@@ -595,5 +595,19 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  // A cup at rest with steam curling off it. Three wisps on different
+  // phases, drifting up and sideways and fading as they rise.
+  RB.sillCup = function (x, y, t) {
+    RB.drawSprite(RB.sprites.cup, x, y, RB.cast.you);
+    for (var i = 0; i < 3; i++) {
+      var k = ((t * 0.55 + i * 0.34) % 1);
+      var sy = y - 1 - k * 11;
+      var sx = x + 3 + Math.sin(t * 1.7 + i * 2.2 + k * 3) * 2.2;
+      RB.ctx.globalAlpha = (1 - k) * 0.34;
+      RB.rect(sx, sy, 1, 2, P.white);
+      RB.ctx.globalAlpha = 1;
+    }
+  };
+
   RB.now = 0;
 })(window.RB = window.RB || {});

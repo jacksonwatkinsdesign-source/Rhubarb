@@ -56,6 +56,7 @@ const MAX_FRAMES = 60 * 60 * 14;   // 14 simulated minutes, hard stop
                      board: !!sc.boardPrompt, seat: sc.seatPrompt },
           state: JSON.parse(JSON.stringify(RB.state)),
           dialog: RB.dialog.active(),
+          dbg: RB.scene.dbg ? RB.scene.dbg() : null,
           fade: +RB.fade.v.toFixed(2)
         };
         break;

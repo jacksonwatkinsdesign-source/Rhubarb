@@ -27,6 +27,9 @@ event — which is what makes holding a direction while tapping the button work.
 
 Buying a coffee on the way to the gates is optional. If you do, you carry the cup for the rest of the trip.
 
+Security is a real queue: roped into one lane you cannot walk around, one
+passport at a time, and you go last.
+
 A quarter of the way into the cruise the attendant offers you one. Say yes and
 she brings it at the halfway mark; three-quarters through she comes back for
 the empties. Whatever you are holding sits on the window ledge, so the cups

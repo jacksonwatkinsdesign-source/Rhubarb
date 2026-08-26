@@ -36,9 +36,16 @@ const path = require('path');
       RB.drawSprite(S.down[0], 120 + (i % 5) * 22, 4 + Math.floor(i / 5) * 30, RB.cast[n]);
       RB.font.draw(n, 118 + (i % 5) * 22, 28 + Math.floor(i / 5) * 30, '#8a9bb8');
     });
-    RB.font.draw('player: blue suit', 2, 118, '#e8a054');
+    // Cup-in-hand check, every facing, plus the sill cup with steam.
+    RB.font.draw('holding', 2, 106, '#e8a054');
+    ['down','right','left','up'].forEach((d, i) => {
+      const a = new RB.Actor({ x: 40 + i * 24, y: 108, pal: RB.cast.you, dir: d, cup: true, shadow: false });
+      a.draw();
+    });
+    RB.sillCup(150, 112, RB.now);
+    RB.font.draw('player: blue suit', 2, 132, '#e8a054');
     RB.font.draw('the cast', 120, 92, '#e8a054');
-    RB.drawSprite(S.bag, 14, 128, RB.cast.you);
+    RB.drawSprite(S.bag, 14, 140, RB.cast.you);
     RB.present();
   });
 

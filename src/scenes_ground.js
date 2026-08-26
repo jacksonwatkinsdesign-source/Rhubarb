@@ -410,60 +410,105 @@
     var CEIL = 18, WALL = 66, FLOOR = 84;
     var ARCH_X = 340, EXIT_X = 546;
 
+    // The line is the point of this room, so it is a real queue: roped into a
+    // single lane you cannot walk around, one passport at a time, and you go
+    // last. The cadence is deliberately unhurried.
+    var SERVE_X = ARCH_X - 26, GAP = 30;
+    var LANE_TOP = 100, LANE_BOT = 126, LANE_X0 = 148, LANE_X1 = ARCH_X + 22;
+    var PRESENT = 3.4, SHUFFLE = 2.0, CLEAR = 2.0;
+    var qPhase, qTimer;
+
     s.enter = function () {
       RB.audio.bed('hall');
-      player = new RB.Actor({ x: 22, y: FLOOR + 24, pal: RB.cast.you, dir: 'right' });
+      player = new RB.Actor({ x: 22, y: 102, pal: RB.cast.you, dir: 'right' });
+      player.cup = !!RB.state.hasCoffee;
       cleared = false;
       flash = 0;
       script = null;
+      qPhase = 'shuffle';
+      qTimer = 0;
       s.t = 0;
 
       queue = [
-        { a: new RB.Actor({ x: 262, y: FLOOR + 14, pal: RB.cast.suit, dir: 'right' }), goal: 262 },
-        { a: new RB.Actor({ x: 226, y: FLOOR + 22, pal: RB.cast.elder, dir: 'right' }), goal: 226 },
-        { a: new RB.Actor({ x: 190, y: FLOOR + 30, pal: RB.cast.kid, dir: 'right' }), goal: 190 }
+        new RB.Actor({ x: SERVE_X - 6, y: 98, pal: RB.cast.suit, dir: 'right' }),
+        new RB.Actor({ x: SERVE_X - GAP - 8, y: 102, pal: RB.cast.elder, dir: 'right' }),
+        new RB.Actor({ x: SERVE_X - GAP * 2 - 10, y: 106, pal: RB.cast.kid, dir: 'right' })
       ];
-      guard = new RB.Actor({ x: ARCH_X + 40, y: FLOOR + 6, pal: RB.cast.guard, dir: 'left' });
+      guard = new RB.Actor({ x: ARCH_X + 6, y: 96, pal: RB.cast.guard, dir: 'left' });
     };
 
     s.p = function () { return player; };
+    s.dbg = function () { return { queued: queue.filter(function (a) { return !a.hidden; }).length, cleared: cleared, phase: qPhase, px: Math.round(player.x), py: Math.round(player.y) }; };
 
-    var solids = [
+    var walls = [
       { x: -20, y: 0, w: 24, h: 300 },
-      { x: 0, y: 0, w: 580, h: FLOOR }
+      { x: 0, y: 0, w: 580, h: FLOOR },
+      // The rope lane. Without these you can simply walk round the queue.
+      { x: LANE_X0, y: FLOOR, w: LANE_X1 - LANE_X0, h: LANE_TOP - FLOOR },
+      { x: LANE_X0, y: LANE_BOT, w: LANE_X1 - LANE_X0, h: 30 }
     ];
-    var bounds = { x0: 10, y0: FLOOR, x1: roomW - 22, y1: 134 };
+    var bounds = { x0: 10, y0: 86, x1: roomW - 22, y1: 132 };
 
     s.update = function (dt) {
       s.t += dt;
+      qTimer += dt;
       if (script) { script.update(dt); if (script.done) script = null; }
-      if (!script && !RB.dialog.active() && !RB.transitioning()) RB.walk(player, dt, solids, bounds);
-      RB.camFollow(player.x, roomW, dt);
       if (flash > 0) flash -= dt * 2;
 
-      var advance = Math.min(3, Math.floor(s.t / 3.2));
-      queue.forEach(function (q) {
-        var target = q.goal + advance * 36;
-        if (target > ARCH_X + 44) { q.a.hidden = true; return; }
-        q.a.moving = Math.abs(target - q.a.x) > 0.4;
-        q.a.x += (target - q.a.x) * Math.min(1, dt * 2.2);
-        q.a.dir = 'right';
-        q.a.update(dt);
-      });
+      var live = queue.filter(function (a) { return !a.hidden; });
+
+      // One person at the desk at a time: shuffle up, hand it over, move on.
+      if (live.length) {
+        if (qPhase === 'shuffle' && qTimer > SHUFFLE) { qPhase = 'present'; qTimer = 0; }
+        else if (qPhase === 'present' && qTimer > PRESENT) {
+          qPhase = 'clear'; qTimer = 0; RB.audio.sfx.scan(); flash = 1;
+        } else if (qPhase === 'clear' && qTimer > CLEAR) {
+          live[0].hidden = true; qPhase = 'shuffle'; qTimer = 0;
+        }
+      }
+
+      for (var i = 0; i < live.length; i++) {
+        var q = live[i];
+        var tx = (i === 0 && qPhase === 'clear') ? ARCH_X + 52 : SERVE_X - i * GAP;
+        q.dir = 'right';
+        q.moving = Math.abs(tx - q.x) > 0.6;
+        q.x += (tx - q.x) * Math.min(1, dt * 1.8);
+        // The person at the desk turns to face the officer.
+        if (i === 0 && qPhase === 'present') { q.dir = 'right'; q.moving = false; }
+        q.update(dt);
+      }
+      guard.dir = 'left';
       guard.update(dt);
 
+      // Anyone still in the line is solid, so you queue behind them.
+      var solids = walls.slice();
+      for (var j = 0; j < live.length; j++) {
+        solids.push({ x: live[j].x + 2, y: live[j].y + 6, w: 13, h: 18 });
+      }
+      // The desk itself is closed until you have been seen. Without this you
+      // can walk straight through in the gap after the person in front leaves.
+      if (!cleared) solids.push({ x: ARCH_X - 16, y: FLOOR, w: 32, h: 62 });
+
       var busy = !!script || RB.dialog.active() || RB.transitioning();
-      var atArch = !cleared && !busy && Math.abs(player.x - ARCH_X) < 16;
+      if (!busy) RB.walk(player, dt, solids, bounds);
+      RB.camFollow(player.x, roomW, dt);
+
+      // Your turn only once the line in front of you has gone.
+      var yourTurn = live.length === 0 && !cleared;
+      var atArch = yourTurn && !busy && Math.abs(player.x - SERVE_X) < 22;
       s.prompt = atArch;
+      s.waiting = !cleared && live.length > 0;
       if (atArch && RB.input.pressed('action')) {
         script = new RB.Script(function* () {
-          yield RB.call(function () { player.dir = 'right'; player.moving = true; });
-          yield RB.tween(player, 'x', ARCH_X + 30, 1.6, 'inOut');
-          yield RB.call(function () { player.moving = false; RB.audio.sfx.belt(); flash = 1; });
+          yield RB.call(function () { player.dir = 'right'; player.moving = false; });
           yield RB.say(['Passport, please.'], 'Officer');
-          yield RB.wait(0.7);
+          yield RB.wait(1.4);
+          yield RB.call(function () { RB.audio.sfx.scan(); flash = 1; });
+          yield RB.wait(1.0);
           yield RB.say(['Thank you.'], 'Officer');
-          yield RB.call(function () { cleared = true; });
+          yield RB.call(function () { player.moving = true; });
+          yield RB.tween(player, 'x', ARCH_X + 34, 2.0, 'inOut');
+          yield RB.call(function () { player.moving = false; cleared = true; });
         });
       }
 
@@ -481,7 +526,6 @@
       A.sign(140, 26, 'SECURITY', 58, '#1a2740', P.cream);
       A.sign(444, 26, 'GATES  1 - 24  >', 96, '#1a2740', P.cream);
 
-      // X-ray belt against the wall, running the whole width of the lane.
       RB.wrect(ARCH_X + 44, WALL - 6, 104, 6, '#39445c');
       RB.wrect(ARCH_X + 44, WALL, 104, 5, '#1b2230');
       for (var bx = ARCH_X + 44 + ((s.t * 22) % 12); bx < ARCH_X + 148; bx += 12) RB.wrect(bx, WALL - 5, 6, 4, '#4a5670');
@@ -489,14 +533,19 @@
       RB.wrect(ARCH_X + 62, WALL - 20, 36, 12, '#161d2c');
 
       A.floor(x0, w, FLOOR, RB.H, '#333a52', '#2e344a', P.white);
-      A.queueLine(150, 116, 6, 32);
 
-      // Scanner arch.
+      // The lane, drawn as the rope it collides as.
+      A.queueLine(LANE_X0, LANE_TOP - 12, 7, 30);
+      A.queueLine(LANE_X0, LANE_BOT, 7, 30);
+
+      // Podium the officer stands behind.
+      RB.wrect(ARCH_X - 4, 104, 22, 14, '#4a5468');
+      RB.wrect(ARCH_X - 4, 102, 22, 3, '#6c7488');
+
       RB.wrect(ARCH_X - 18, WALL - 26, 7, FLOOR - WALL + 32, '#8fa0bb');
       RB.wrect(ARCH_X + 12, WALL - 26, 7, FLOOR - WALL + 32, '#8fa0bb');
       RB.wrect(ARCH_X - 18, WALL - 32, 37, 7, '#a8b6cc');
       RB.wrect(ARCH_X - 18, WALL - 32, 37, 1, P.white);
-      RB.wrect(ARCH_X - 18, WALL - 26, 7, 1, '#c4cede');
       if (flash > 0) {
         RB.ctx.globalAlpha = 0.32 * flash;
         RB.wrect(ARCH_X - 12, WALL - 26, 25, FLOOR - WALL + 30, P.green);
@@ -505,13 +554,21 @@
 
       A.doorway(EXIT_X, 28, WALL + 16, '#4a5468', 0.12);
 
-      var list = queue.map(function (q) { return q.a; }).filter(function (a) { return !a.hidden; });
+      var list = queue.filter(function (a) { return !a.hidden; });
       list.push(guard, player);
       list.sort(function (a, b) { return a.y - b.y; });
       list.forEach(function (a) { a.draw(P.steel3, 0.07); });
 
+      // A passport changing hands, at the moment it changes hands.
+      var live = queue.filter(function (a) { return !a.hidden; });
+      if (qPhase === 'present' && live.length) {
+        var hx = live[0].x + 14, hy = live[0].y + 4;
+        RB.wrect(hx, hy, 5, 4, '#2a3f6a');
+        RB.wrect(hx, hy, 5, 1, '#4a63a0');
+      }
+
       if (!RB.dialog.active()) {
-        if (s.prompt) RB.drawPrompt(ARCH_X, WALL - 44, 'Z  step through');
+        if (s.prompt) RB.drawPrompt(SERVE_X + 6, WALL - 44, 'Z  passport');
         else if (s.exitPrompt) RB.drawPrompt(EXIT_X + 13, 58, 'Z  to the gates');
       }
     };
