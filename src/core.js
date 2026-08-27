@@ -2,42 +2,10 @@
 (function (RB) {
   'use strict';
 
-  RB.W = 240;   // GBA native
-  RB.H = 160;
+  RB.W = 256;   // SNES
+  RB.H = 224;
 
-  // ---------------------------------------------------------------- palette
-  // One cohesive ramp for the whole level. The level arcs from night at the
-  // curb to sunrise above the clouds, so most of the drama is palette, not
-  // geometry.
-  RB.P = {
-    black:   '#0b0d14',
-    night0:  '#141a2c',
-    night1:  '#1d2740',
-    night2:  '#2a3757',
-    night3:  '#3b4d72',
-    steel0:  '#4a5c7d',
-    steel1:  '#66789a',
-    steel2:  '#8a9bb8',
-    steel3:  '#b3c0d4',
-    white:   '#e8edf4',
-    warm0:   '#3a3038',
-    warm1:   '#5c4a4a',
-    warm2:   '#8a6f5e',
-    warm3:   '#b89476',
-    warm4:   '#dcbb92',
-    cream:   '#f2e3c6',
-    amber:   '#e8a054',
-    gold:    '#f0c060',
-    orange:  '#e08850',
-    rose:    '#d4718a',
-    violet:  '#7a5c96',
-    teal:    '#4e8f8a',
-    green:   '#5f8f5a',
-    red:     '#b8524e',
-    skin0:   '#c99a72',
-    skin1:   '#a67450',
-    navy:    '#22304e'
-  };
+  // Palette lives in palette.js, which loads first.
 
   // ---------------------------------------------------------------- canvas
   var buffer = document.createElement('canvas');

@@ -37,7 +37,7 @@ const SHOTS = [
     executablePath: '/opt/pw-browsers/chromium',
     args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio']
   });
-  const page = await browser.newPage({ viewport: { width: 720, height: 480 } });
+  const page = await browser.newPage({ viewport: { width: 1024, height: 896 } });
   const errors = [];
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });

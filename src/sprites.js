@@ -1,283 +1,295 @@
-// sprites.js — 16x24 character sprites, three-tone shaded, palette-swapped.
+// sprites.js — 20x32 characters, drawn to sit in an oblique world.
 //
-// Scale and proportion are pitched at GBA-era Pokemon (big head, readable
-// face at 1x), with the heavier outline and higher-saturation shading of the
-// Battle Network overworld sprites.
+// Rows are authored as run-length segments ("6. 8t 6.") and expanded, because
+// hand-counting twenty characters per row across ninety-odd rows is how you
+// get a sprite that is sheared by one pixel and impossible to spot by eye.
 //
-// Keys: . transparent   t outline
-//       h hair   H hair highlight
-//       k skin   K skin shade
-//       e eye
-//       s jacket   S jacket shade   L jacket highlight
-//       w collar   c tie
-//       p trousers   P trouser shade
-//       o shoe   b bag   B bag highlight
+// Light comes from the top-left, matching the module kit: left edges take the
+// light tone, right edges take the shade.
+//
+// Keys: . clear  t outline
+//       d hair-dark  h hair  H hair-light
+//       k skin  K skin-shade  f skin-light
+//       e eye  q eye-white
+//       s shirt  S shirt-shade  L shirt-light
+//       w collar  c tie
+//       p trousers  P trouser-shade  A trouser-light
+//       o shoe  O shoe-light
 (function (RB) {
   'use strict';
 
-  var W = 16, H = 24;
+  var W = 20, H = 32;
+
+  function R(spec) {
+    var out = '';
+    spec.split(' ').forEach(function (seg) {
+      var n = parseInt(seg, 10);
+      out += seg.slice(String(n).length).repeat(n);
+    });
+    return out;
+  }
+  function S(rows) { return rows.map(R); }
 
   // ------------------------------------------------------------------ down
-  // Head is twelve rows of twenty-four. Any more and it tips from GBA-chibi
-  // into bobblehead; any less and the face stops reading at 1x.
-  var D0 = [
-    '.....tttttt.....',
-    '...tthhhhhhtt...',
-    '..thhhhhhhhhht..',
-    '.thhhHHHHHHhhht.',
-    '.thhhhhhhhhhhht.',
-    '.thhkkkkkkkkhht.',
-    '.thkkttkkttkkht.',
-    '.thkkeekkeekkht.',
-    '.tkkkkkkkkkkkkt.',
-    '.tKkkkkkkkkkkKt.',
-    '..tkkkkkkkkkkt..',
-    '...ttkkkkkktt...',
-    '..ttsswwwwsstt..',
-    '.tLssswccwsssLt.',
-    '.tLsssswccsssLt.',
-    '.tksssssccsssKt.',
-    '.tksssssccsssKt.',
-    '.tkssssssssssKt.',
-    '..tsssssssssst..',
-    '..tppppttppppt..',
-    '..tpppt..tpppt..',
-    '..tpppt..tpppt..',
-    '..tPPPt..tPPPt..',
-    '..tooot..tooot..'
+  var HEAD_DOWN = [
+    '6. 8t 6.',
+    '5. 1t 8d 1t 5.',
+    '4. 1t 10d 1t 4.',
+    '3. 1t 2d 8H 2d 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 2h 8k 2h 1t 3.',
+    '3. 1t 1h 10k 1h 1t 3.',
+    '3. 1t 1h 10k 1h 1t 3.',
+    '3. 1t 1h 2k 2t 2k 2t 2k 1h 1t 3.',
+    '3. 1t 1h 2k 1e 1q 2k 1q 1e 2k 1h 1t 3.',
+    '3. 1t 1h 10k 1h 1t 3.',
+    '3. 1t 1h 4k 2K 4k 1h 1t 3.',
+    '3. 1t 12k 1t 3.',
+    '4. 1t 10k 1t 4.',
+    '5. 1t 8K 1t 5.'
   ];
-  // Step frames differ only below the waist; at this size the legs carry the
-  // whole cycle and articulating the arms too just reads as noise.
-  var D1 = D0.slice(0, 19).concat([
-    '..tppppttppppt..',
-    '.tppppt..tpppt..',
-    '.tppppt...tppt..',
-    '.tPPPPt...tPPt..',
-    '.tooot....toot..'
-  ]);
-  var D2 = D0.slice(0, 19).concat([
-    '..tppppttppppt..',
-    '..tpppt..tppppt.',
-    '..tppt...tppppt.',
-    '..tPPt...tPPPPt.',
-    '..toot....tooot.'
-  ]);
+  var TORSO_DOWN = [
+    '3. 1t 1L 3s 4w 3s 1S 1t 3.',
+    '2. 1t 1L 4s 1w 2c 1w 4s 1S 1t 2.',
+    '2. 1t 1L 5s 2c 5s 1S 1t 2.',
+    '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
+    '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
+    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
+    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
+    '2. 1t 1L 12s 1S 1t 2.',
+    '3. 1t 12s 1t 3.'
+  ];
+  var LEGS_IDLE = [
+    '3. 1t 5p 2t 5p 1t 3.',
+    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
+    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
+    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
+    '3. 1t 5P 2t 5P 1t 3.',
+    '3. 1t 5o 2t 5o 1t 3.',
+    '3. 1t 1O 4o 2t 1O 4o 1t 3.',
+    '3. 6t 2. 6t 3.'
+  ];
+  var LEGS_A = [
+    '3. 1t 5p 2t 5p 1t 3.',
+    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
+    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
+    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
+    '3. 1t 6P 2t 4P 1t 3.',
+    '3. 1t 6o 2t 4o 1t 3.',
+    '3. 1t 1O 5o 2t 1O 3o 1t 3.',
+    '3. 7t 2. 5t 3.'
+  ];
+  var LEGS_B = [
+    '3. 1t 5p 2t 5p 1t 3.',
+    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
+    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
+    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
+    '3. 1t 4P 2t 6P 1t 3.',
+    '3. 1t 4o 2t 6o 1t 3.',
+    '3. 1t 1O 3o 2t 1O 5o 1t 3.',
+    '3. 5t 2. 7t 3.'
+  ];
 
   // -------------------------------------------------------------------- up
-  var U0 = [
-    '.....tttttt.....',
-    '...tthhhhhhtt...',
-    '..thhhhhhhhhht..',
-    '.thhhHHHHHHhhht.',
-    '.thhhhhhhhhhhht.',
-    '.thhhhhhhhhhhht.',
-    '.thhhhhhhhhhhht.',
-    '.thhhhhhhhhhhht.',
-    '.thhhhhhhhhhhht.',
-    '.thhhhhhhhhhhht.',
-    '..thhhhhhhhhht..',
-    '...ttkkkkkktt...',
-    '..ttsssssssstt..',
-    '.tLssssssssssLt.',
-    '.tLssssssssssLt.',
-    '.tkssssssssssKt.',
-    '.tkssssssssssKt.',
-    '.tkssssssssssKt.',
-    '..tsssssssssst..',
-    '..tppppttppppt..',
-    '..tpppt..tpppt..',
-    '..tpppt..tpppt..',
-    '..tPPPt..tPPPt..',
-    '..tooot..tooot..'
+  var HEAD_UP = [
+    '6. 8t 6.',
+    '5. 1t 8d 1t 5.',
+    '4. 1t 10d 1t 4.',
+    '3. 1t 2d 8H 2d 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 12h 1t 3.',
+    '3. 1t 2h 8d 2h 1t 3.',
+    '3. 1t 12d 1t 3.',
+    '4. 1t 10d 1t 4.',
+    '5. 1t 8K 1t 5.'
   ];
-  var U1 = U0.slice(0, 19).concat(D1.slice(19));
-  var U2 = U0.slice(0, 19).concat(D2.slice(19));
+  var TORSO_UP = [
+    '3. 1t 1L 10s 1S 1t 3.',
+    '2. 1t 1L 12s 1S 1t 2.',
+    '2. 1t 1L 12s 1S 1t 2.',
+    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
+    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
+    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
+    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
+    '2. 1t 1L 12s 1S 1t 2.',
+    '3. 1t 12s 1t 3.'
+  ];
 
   // ------------------------------------------------------------------ side
-  // Facing right; mirrored at draw time for left.
-  var S0 = [
-    '....tttttt......',
-    '..tthhhhhhtt....',
-    '.thhhhhhhhhht...',
-    '.thhHHHHhhhkkt..',
-    '.thhhhhhhkkkkt..',
-    '.thhhhhkkkkkkt..',
-    '.thhhkkttkkkkt..',
-    '.thhhkkeekkkkt..',
-    '.thhhkkkkkkkkt..',
-    '..thkkkkkkkkt...',
-    '...tkkkkkkkt....',
-    '....tkkkkkt.....',
-    '..ttsswwwstt....',
-    '.tLsssswwcst....',
-    '.tLsssssccst....',
-    '.tLsssssssskt...',
-    '.tSssssssssKt...',
-    '.tSssssssssst...',
-    '..tsssssssst....',
-    '..tppppppppt....',
-    '..tpppppppt.....',
-    '..tpppppppt.....',
-    '..tPPPPPPt......',
-    '..toooooot......'
+  var SIDE_IDLE = [
+    '5. 8t 7.',
+    '4. 1t 8d 1t 6.',
+    '3. 1t 10d 1t 5.',
+    '2. 1t 2d 8H 1d 1t 5.',
+    '2. 1t 10h 1k 1t 5.',
+    '2. 1t 8h 3k 1t 5.',
+    '2. 1t 6h 5k 1t 5.',
+    '2. 1t 5h 6k 1t 5.',
+    '2. 1t 4h 2k 2t 3k 1t 5.',
+    '2. 1t 4h 2k 1e 1q 3k 1t 5.',
+    '2. 1t 4h 7k 1t 5.',
+    '2. 1t 3h 7k 1K 1t 5.',
+    '3. 1t 10k 1t 5.',
+    '4. 1t 8k 1t 6.',
+    '5. 1t 6K 1t 7.',
+    '3. 1t 1L 6s 2w 1S 1t 5.',
+    '3. 1t 1L 7s 1c 1S 1t 5.',
+    '3. 1t 1L 8s 1S 1t 5.',
+    '3. 1t 1L 8s 1S 1t 1k 4.',
+    '3. 1t 1L 8s 1S 1t 1k 4.',
+    '3. 1t 1L 8s 1S 1t 5.',
+    '3. 1t 1L 8s 1S 1t 5.',
+    '3. 1t 10s 1t 5.',
+    '3. 1t 10s 1t 5.',
+    '3. 1t 10p 1t 5.',
+    '3. 1t 1A 8p 1P 1t 5.',
+    '3. 1t 1A 8p 1P 1t 5.',
+    '3. 1t 1A 8p 1P 1t 5.',
+    '3. 1t 10P 1t 5.',
+    '3. 1t 10o 1t 5.',
+    '3. 1t 1O 9o 1t 5.',
+    '3. 12t 5.'
   ];
-  var S1 = S0.slice(0, 19).concat([
-    '..tppppppppt....',
-    '.tppppppppt.....',
-    '.tPPPt..tPPPt...',
-    '.tPPt....tPPt...',
-    '.toot....toot...'
+  var SIDE_LEGS_A = [
+    '3. 1t 10p 1t 5.',
+    '2. 1t 1A 5p 2t 1A 2p 1t 5.',
+    '2. 1t 1A 5p 2t 1A 2p 1t 5.',
+    '2. 1t 1A 5p 2t 1A 2p 1t 5.',
+    '2. 1t 6P 2t 3P 1t 5.',
+    '2. 1t 6o 2t 3o 1t 5.',
+    '2. 1t 1O 5o 2t 1O 2o 1t 5.',
+    '2. 7t 2. 4t 5.'
+  ];
+  var SIDE_LEGS_B = [
+    '3. 1t 10p 1t 5.',
+    '4. 1t 8p 1t 6.',
+    '4. 1t 8p 1t 6.',
+    '4. 1t 8p 1t 6.',
+    '4. 1t 8P 1t 6.',
+    '4. 1t 8o 1t 6.',
+    '4. 1t 1O 7o 1t 6.',
+    '4. 10t 6.'
+  ];
+
+  var DOWN = {
+    0: S(HEAD_DOWN.concat(TORSO_DOWN, LEGS_IDLE)),
+    1: S(HEAD_DOWN.concat(TORSO_DOWN, LEGS_A)),
+    2: S(HEAD_DOWN.concat(TORSO_DOWN, LEGS_B))
+  };
+  var UP = {
+    0: S(HEAD_UP.concat(TORSO_UP, LEGS_IDLE)),
+    1: S(HEAD_UP.concat(TORSO_UP, LEGS_A)),
+    2: S(HEAD_UP.concat(TORSO_UP, LEGS_B))
+  };
+  var SIDE = {
+    0: S(SIDE_IDLE),
+    1: S(SIDE_IDLE.slice(0, 24).concat(SIDE_LEGS_A)),
+    2: S(SIDE_IDLE.slice(0, 24).concat(SIDE_LEGS_B))
+  };
+
+  // ------------------------------------------------------------------ props
+  var BAG = S([
+    '3. 6t 3.', '3. 1t 4. 1t 3.', '12t',
+    '1t 10b 1t', '1t 1B 8b 1B 1t', '1t 10b 1t',
+    '1t 1B 8b 1B 1t', '1t 10S 1t', '1t 10b 1t',
+    '1t 1B 8b 1B 1t', '12t', '1. 1t 8. 1t 1.',
+    '1. 1o 8. 1o 1.', '12.'
   ]);
-  var S2 = S0.slice(0, 19).concat([
-    '..tppppppppt....',
-    '..tpppppppt.....',
-    '..tPPPPPt.......',
-    '..tPPPPt........',
-    '..toooot........'
+  var CUP = S([
+    '1. 5t 1.', '1t 5b 1t', '1t 5B 1t', '7t',
+    '1. 1t 3w 1t 1.', '1. 1t 3b 1t 1.', '1. 1t 3B 1t 1.',
+    '1. 1t 3w 1t 1.', '2. 3t 2.'
+  ]);
+  var BIGCUP = S([
+    '3. 8t 3.', '2. 1t 8L 1t 2.', '1. 1t 10L 1t 1.',
+    '1. 1t 10l 1t 1.', '1t 12l 1t', '14t',
+    '1. 1t 10c 1t 1.', '1. 1t 1H 8c 1C 1t 1.', '1. 1t 1H 8c 1C 1t 1.',
+    '1. 1t 1H 8c 1C 1t 1.', '1. 1t 10c 1t 1.', '1. 1t 10B 1t 1.',
+    '1. 1t 8s 2S 1t 1.', '1. 1t 8s 2S 1t 1.', '1. 1t 8s 2S 1t 1.',
+    '1. 1t 8s 2S 1t 1.', '1. 1t 8s 2S 1t 1.', '1. 1t 10S 1t 1.',
+    '1. 1t 10c 1t 1.', '1. 1t 1H 8c 1C 1t 1.', '1. 1t 1H 8c 1C 1t 1.',
+    '2. 1t 7c 1C 1t 2.', '2. 1t 1H 6c 1C 1t 2.', '3. 1t 6c 1C 1t 2.',
+    '3. 8t 3.', '4. 6t 4.'
   ]);
 
-  // ------------------------------------------------------------------ bag
-  var BAG = [
-    '...tttt...',
-    '...t..t...',
-    'tttttttttt',
-    'tbbbbbbbbt',
-    'tbBBBBBBbt',
-    'tbbbbbbbbt',
-    'tbbbbbbbbt',
-    'tbSSSSSSbt',
-    'tbbbbbbbbt',
-    'tbbbbbbbbt',
-    'tttttttttt',
-    '.t......t.',
-    '.o......o.',
-    '..........'
-  ];
-
-  // ------------------------------------------------------------------ cup
-  // A takeaway cup: dark lid, pale cup, card sleeve. Reuses the bag's palette
-  // keys so carrying one needs no new colours.
-  var CUP = [
-    '.ttttt.',
-    'tbbbbbt',
-    'tBBBBBt',
-    'ttttttt',
-    '.twwwt.',
-    '.tbbbt.',
-    '.tBBBt.',
-    '.twwwt.',
-    '..ttt..'
-  ];
-
-  // -------------------------------------------------------------- big cup
-  // The window scenes are a close-up: the pane fills most of the screen, so a
-  // cup on that ledge is a foreground object, not a 7px world prop. This one
-  // is drawn to the window's scale and partly occludes it, the way a cup on a
-  // real sill does.
-  var BIGCUP = [
-    '...tttttttt...',
-    '..tLLLLLLLLt..',
-    '.tLLLLLLLLLLt.',
-    '.tllllllllllt.',
-    'tllllllllllllt',
-    'tttttttttttttt',
-    '.tcccccccccct.',
-    '.tHccccccccCt.',
-    '.tHccccccccCt.',
-    '.tHccccccccCt.',
-    '.tcccccccccct.',
-    '.tBBBBBBBBBBt.',
-    '.tssssssssSSt.',
-    '.tssssssssSSt.',
-    '.tssssssssSSt.',
-    '.tssssssssSSt.',
-    '.tssssssssSSt.',
-    '.tSSSSSSSSSSt.',
-    '.tcccccccccct.',
-    '.tHccccccccCt.',
-    '.tHccccccccCt.',
-    '..tcccccccCt..',
-    '..tHccccccCt..',
-    '...tccccccCt..',
-    '...tttttttt...',
-    '....tttttt....'
-  ];
-
-  // Validate rather than silently pad: a sheared sprite is very hard to spot
-  // by eye and very easy to introduce by miscounting one row.
+  // Validate. A bad row is loud at load rather than sheared in the game.
   var errors = [];
-  function check(name, rows, w, h) {
-    if (rows.length !== h) errors.push(name + ' has ' + rows.length + ' rows, expected ' + h);
-    for (var i = 0; i < rows.length; i++) {
-      if (rows[i].length !== w) {
-        errors.push(name + ' row ' + i + ' is ' + rows[i].length + ' wide: "' + rows[i] + '"');
-      }
-    }
-    return rows.map(function (r) {
-      if (r.length > w) return r.slice(0, w);
-      while (r.length < w) r += '.';
-      return r;
+  function check(name, rows, w) {
+    rows.forEach(function (r, i) {
+      if (r.length !== w) errors.push(name + ' row ' + i + ' = ' + r.length + ' (want ' + w + ')');
     });
+    return rows;
   }
+  ['0', '1', '2'].forEach(function (k) {
+    check('down' + k, DOWN[k], W); check('up' + k, UP[k], W); check('side' + k, SIDE[k], W);
+    if (DOWN[k].length !== H) errors.push('down' + k + ' has ' + DOWN[k].length + ' rows');
+    if (SIDE[k].length !== H) errors.push('side' + k + ' has ' + SIDE[k].length + ' rows');
+  });
+  check('bag', BAG, 12); check('cup', CUP, 7); check('bigcup', BIGCUP, 14);
 
-  var DOWN = { 0: check('down0', D0, W, H), 1: check('down1', D1, W, H), 2: check('down2', D2, W, H) };
-  var UP   = { 0: check('up0', U0, W, H),   1: check('up1', U1, W, H),   2: check('up2', U2, W, H) };
-  var SIDE = { 0: check('side0', S0, W, H), 1: check('side1', S1, W, H), 2: check('side2', S2, W, H) };
-  var BAG_F = check('bag', BAG, 10, 14);
-  var CUP_F = check('cup', CUP, 7, 9);
-  var BIGCUP_F = check('bigcup', BIGCUP, 14, 26);
-
-  // Seated poses are derived from the standing idle so they can never drift
-  // out of sync with it: drop two rows in, fold the legs at the bottom.
+  // Seated poses derive from the standing idle, so they cannot drift from it.
   function seat(rows, legs) {
-    return ['................', '................']
-      .concat(rows.slice(0, 19))
-      .concat(legs);
+    return ['20.', '20.'].map(R).concat(rows.slice(0, 24)).concat(S(legs));
   }
-  var SIT_D = seat(DOWN[0], ['..tppppppppppt..', '..tPPPPPPPPPPt..', '..toot....toot..']);
-  var SIT_S = seat(SIDE[0], ['..tppppppppppt..', '..tPPPPPPPPt....', '..toooot........']);
+  var SIT_D = seat(DOWN[0], [
+    '3. 1t 12p 1t 3.', '3. 1t 1A 10p 1P 1t 3.',
+    '3. 1t 12P 1t 3.', '3. 1t 4o 4t 4o 1t 3.',
+    '3. 5t 4. 5t 3.', '20.'
+  ]);
+  var SIT_S = seat(SIDE[0], [
+    '3. 1t 12p 1t 3.', '3. 1t 1A 11p 1t 3.',
+    '3. 1t 12P 1t 3.', '3. 1t 10o 1t 5.',
+    '3. 9t 8.', '20.'
+  ]);
+  check('sitDown', SIT_D, W); check('sitSide', SIT_S, W);
 
   if (errors.length && typeof console !== 'undefined') console.warn('sprite errors:', errors);
   RB.spriteErrors = errors;
 
   RB.sprites = {
     down: DOWN, up: UP, side: SIDE,
-    sitDown: SIT_D, sitSide: SIT_S, bag: BAG_F, cup: CUP_F, bigcup: BIGCUP_F,
+    sitDown: SIT_D, sitSide: SIT_S,
+    bag: BAG, cup: CUP, bigcup: BIGCUP,
     W: W, H: H
   };
 
   // --------------------------------------------------------------- palettes
-  // Three tones per material. The mid tone is the character's identity; the
-  // shade and highlight are derived unless a caller wants them specific.
   RB.pal = function (o) {
-    var skin  = o.skin  || '#f0c090';
-    var hair  = o.hair  || '#3a2418';
-    var shirt = o.shirt || '#3c6fc0';
-    var pants = o.pants || '#2e5296';
-    var bag   = o.bag   || '#8a5a3c';
+    var P = RB.P;
+    var skin = o.skin || P.k3;
+    var hair = o.hair || '#3a2a1e';
+    var shirt = o.shirt || P.blu2;
+    var pants = o.pants || P.blu1;
+    var bag = o.bag || P.w3;
     return {
-      t: o.outline    || '#181428',
-      h: hair,
-      H: o.hairHi     || RB.shade(hair, 0.30),
-      k: skin,
-      K: o.skinShade  || RB.shade(skin, -0.20),
-      e: o.eye        || '#241c30',
-      s: shirt,
-      S: o.shirtShade || RB.shade(shirt, -0.30),
-      L: o.shirtLight || RB.shade(shirt, 0.24),
-      w: o.collar     || '#f2eee0',
-      c: o.tie        || '#1f3468',
-      p: pants,
-      P: o.pantsShade || RB.shade(pants, -0.30),
-      o: o.shoe       || '#241e2c',
-      b: bag,
-      B: o.bagHi      || RB.shade(bag, 0.22)
+      t: o.outline || '#14121c',
+      d: RB.shade(hair, -0.30), h: hair, H: RB.shade(hair, 0.34),
+      k: skin, K: RB.shade(skin, -0.22), f: RB.shade(skin, 0.20),
+      e: '#22202e', q: '#e6e2ee',
+      s: shirt, S: RB.shade(shirt, -0.28), L: RB.shade(shirt, 0.22),
+      w: o.collar || P.pale, c: o.tie || RB.shade(shirt, -0.48),
+      p: pants, P: RB.shade(pants, -0.28), A: RB.shade(pants, 0.20),
+      o: o.shoe || '#221e2c', O: RB.shade(o.shoe || '#221e2c', 0.28),
+      b: bag, B: RB.shade(bag, 0.24),
+      // big-cup keys
+      l: '#2b2430', C: '#b2aa9c'
     };
   };
 
-  // Draw a sprite at x,y in WORLD space. `x,y` still mean what they meant
-  // when characters were 12x18 — the extra width and height are absorbed
-  // here — so every scene coordinate in the game stays valid.
+  RB.cupPal = {
+    t: '#241c28', l: '#2b2430', L: '#4c4254',
+    c: '#e8e2d4', C: '#b2aa9c', H: '#f8f4ea',
+    s: '#a87848', S: '#7a5430',
+    b: '#2b2430', B: '#c89660', w: '#e8e2d4'
+  };
+
+  // Characters keep the coordinates written for 12x18 sprites; props draw at
+  // their literal position.
   RB.drawSprite = function (rows, x, y, pal, flip, tint, tintAmt) {
     var ctx = RB.ctx;
     var w = rows[0].length, h = rows.length;
@@ -314,7 +326,7 @@
     this.moving = false;
     this.sitting = o.sitting || false;
     this.hidden = false;
-    this.speed = o.speed || 44;
+    this.speed = o.speed || 52;
     this.bag = o.bag || false;
     this.cup = o.cup || false;
     this.shadow = o.shadow !== false;
@@ -322,16 +334,12 @@
 
   Actor.prototype.frames = function () {
     var order = [1, 0, 2, 0];
-    var set = this.dir === 'up' ? RB.sprites.up
-            : this.dir === 'down' ? RB.sprites.down
-            : RB.sprites.side;
-    if (!this.moving) return set[0];
-    return set[order[Math.floor(this.anim) % 4]];
+    var set = this.dir === 'up' ? UP : this.dir === 'down' ? DOWN : SIDE;
+    return this.moving ? set[order[Math.floor(this.anim) % 4]] : set[0];
   };
 
   Actor.prototype.update = function (dt) {
-    if (this.moving) this.anim += dt * 7;
-    else this.anim = 0;
+    if (this.moving) this.anim += dt * 7; else this.anim = 0;
   };
 
   Actor.prototype.draw = function (tint, tintAmt) {
@@ -339,32 +347,24 @@
     var flip = this.dir === 'left';
     var rows, bob = 0;
     if (this.sitting) {
-      rows = (this.dir === 'left' || this.dir === 'right') ? RB.sprites.sitSide : RB.sprites.sitDown;
+      rows = (this.dir === 'left' || this.dir === 'right') ? SIT_S : SIT_D;
     } else {
       rows = this.frames();
-      // Contact frames sit a pixel lower than the passing frame. It is one
-      // pixel and it is most of what makes the walk read as weight.
       if (this.moving && [1, 2].indexOf([1, 0, 2, 0][Math.floor(this.anim) % 4]) >= 0) bob = 1;
     }
-
     if (this.shadow) {
       var sx = Math.round(this.x - RB.cam.x), sy = Math.round(this.y - RB.cam.y);
-      RB.ctx.fillStyle = 'rgba(0,0,0,0.20)';
-      RB.ctx.fillRect(sx, sy + 17, 12, 2);
-      RB.ctx.fillRect(sx + 2, sy + 19, 8, 1);
+      RB.ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      RB.ctx.fillRect(sx - 2, sy + 16, 16, 2);
+      RB.ctx.fillRect(sx, sy + 18, 12, 1);
     }
     RB.drawSprite(rows, this.x, this.y + bob, this.pal, flip, tint, tintAmt);
-
     if (this.bag && !this.sitting) {
-      var bx = this.x + (flip ? 13 : -11);
-      RB.drawSprite(RB.sprites.bag, bx, this.y + 4, this.pal, flip, tint, tintAmt);
+      RB.drawSprite(BAG, this.x + (flip ? 14 : -13), this.y + 2, this.pal, flip, tint, tintAmt);
     }
-    // Anchored to the hand pixels: the down/up sprites put a hand at column
-    // 13 row 15, the side sprite at column 11. The cup overlaps that grip.
     if (this.cup) {
-      var cx = this.x + (this.dir === 'left' ? -1 : this.dir === 'right' ? 8 : 7);
-      var cy = this.y + (this.sitting ? 7 : 3);
-      RB.drawSprite(RB.sprites.cup, cx, cy, this.pal, false, tint, tintAmt);
+      var cx = this.x + (this.dir === 'left' ? -3 : this.dir === 'right' ? 10 : 8);
+      RB.drawSprite(CUP, cx, this.y + (this.sitting ? 6 : 1), this.pal, false, tint, tintAmt);
     }
   };
 

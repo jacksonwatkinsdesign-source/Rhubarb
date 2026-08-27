@@ -5,7 +5,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const ORDER = [
-  'core.js', 'font.js', 'touch.js', 'sprites.js', 'audio.js', 'world.js',
+  'palette.js', 'core.js', 'font.js', 'touch.js', 'sprites.js', 'audio.js', 'oblique.js', 'world.js',
   'scenes_ground.js', 'scenes_gate.js', 'scenes_flight.js', 'game.js'
 ];
 

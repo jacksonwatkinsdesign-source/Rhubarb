@@ -34,22 +34,20 @@
     var s = { id: 'curb' };
     var player, driver, van, bag, script, ready;
 
-    // Composition is built around the dialogue box: everything that matters
-    // lives between the sky and the kerb, and the road below is left empty.
-    var FACADE = 46, WIN_Y = 58, PAVE = 94, KERB = 114, ROAD = 117;
-    var VAN_Y = 114;
-    var STAND = 82;            // sprite y for someone standing on the pavement
-    var DOOR_X = 156;
+    // Oblique, SNES 256x224. Bands are on the 8px grid and the whole scene is
+    // composed from the module kit — the terminal is one bay repeated with
+    // fittings tacked on, exactly like the buildings in the games this is
+    // trying to feel like.
+    var SKY = 64, WIN_Y = 74, CANOPY = 98, PAVE = 128, KERB = 164, ROAD = 170;
+    var VAN_Y = 176, STAND = 132, DOOR_X = 168;
 
-    // Fixed, deterministic lit-window pattern. A real pseudorandom mask is
-    // the difference between a terminal at 4am and a row of gold bricks.
-    var WINDOWS = [];
+    // Fixed lit-window mask. Deterministic, so the terminal looks the same
+    // every time you arrive at it.
+    var BAYS = [];
     (function () {
       var seed = 90210;
       function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
-      for (var x = 4; x < 240; x += 13) {
-        WINDOWS.push({ x: x, lit: rnd() > 0.42, warm: rnd() });
-      }
+      for (var i = 0; i < 12; i++) BAYS.push({ lit: rnd() > 0.42, warm: rnd(), tall: rnd() > 0.7 });
     })();
 
     s.enter = function () {
@@ -59,11 +57,11 @@
       RB.state.cupsHeld = 0;
       RB.state.cupLevel = 1;
 
-      van = { x: 300, y: VAN_Y };
+      van = { x: 340, y: VAN_Y };
       s.doorOpen = 0;
-      player = new RB.Actor({ x: 134, y: STAND, pal: RB.cast.you, dir: 'down' });
+      player = new RB.Actor({ x: 150, y: STAND, pal: RB.cast.you, dir: 'down' });
       player.hidden = true;
-      driver = new RB.Actor({ x: 176, y: STAND, pal: RB.cast.driver, dir: 'left' });
+      driver = new RB.Actor({ x: 196, y: STAND, pal: RB.cast.driver, dir: 'left' });
       driver.hidden = true;
       bag = null;
       ready = false;
@@ -71,43 +69,40 @@
 
       script = new RB.Script(function* () {
         yield RB.wait(1.2);
-        yield RB.captionFor('Somewhere before five in the morning.', 3.6, 24);
-        yield RB.tween(van, 'x', 88, 3.4, 'outQuint');
+        yield RB.captionFor('Somewhere before five in the morning.', 3.6, 28);
+        yield RB.tween(van, 'x', 96, 3.4, 'outQuint');
         yield RB.wait(0.9);
         yield RB.call(function () {
           RB.audio.sfx.door();
-          driver.hidden = false; driver.x = 176; driver.y = STAND;
+          driver.hidden = false; driver.x = 196; driver.y = STAND;
           driver.moving = true; driver.dir = 'left';
         });
-        // Round the front of the van to your door.
-        yield RB.tween(driver, 'x', 146, 1.7, 'inOut');
+        yield RB.tween(driver, 'x', 162, 1.7, 'inOut');
         yield RB.call(function () { driver.moving = false; driver.dir = 'down'; });
         yield RB.wait(0.4);
         yield RB.call(function () { RB.audio.sfx.door(); });
         yield RB.tween(s, 'doorOpen', 1, 0.8, 'out');
         yield RB.wait(0.5);
-        // You climb out and step up onto the pavement.
         yield RB.call(function () {
-          player.hidden = false; player.x = 130; player.y = 100;
+          player.hidden = false; player.x = 146; player.y = 152;
           player.dir = 'up'; player.moving = true;
         });
         yield RB.tween(player, 'y', STAND, 1.5, 'out');
         yield RB.call(function () { player.moving = false; player.dir = 'down'; });
         yield RB.wait(0.7);
-        // Back for the luggage.
         yield RB.call(function () { driver.moving = true; driver.dir = 'right'; });
-        yield RB.tween(driver, 'x', 184, 1.7, 'inOut');
+        yield RB.tween(driver, 'x', 206, 1.7, 'inOut');
         yield RB.call(function () { driver.moving = false; driver.dir = 'down'; RB.audio.sfx.door(); });
         yield RB.wait(0.9);
-        yield RB.call(function () { bag = { x: 186, y: STAND + 8 }; });
+        yield RB.call(function () { bag = { x: 208, y: STAND + 10 }; });
         yield RB.call(function () { driver.moving = true; driver.dir = 'left'; });
-        yield RB.tweenAll([RB.tween(driver, 'x', 144, 1.8, 'inOut'), RB.tween(bag, 'x', 146, 1.8, 'inOut')]);
+        yield RB.tweenAll([RB.tween(driver, 'x', 160, 1.8, 'inOut'), RB.tween(bag, 'x', 162, 1.8, 'inOut')]);
         yield RB.call(function () { driver.moving = false; driver.dir = 'down'; });
         yield RB.wait(0.5);
         yield RB.say(['Here you are, sir.', 'Safe travels.'], 'Driver', { top: true });
         yield RB.wait(0.6);
         yield RB.call(function () { driver.moving = true; driver.dir = 'right'; });
-        yield RB.tween(driver, 'x', 180, 2.0, 'inOut');
+        yield RB.tween(driver, 'x', 200, 2.0, 'inOut');
         yield RB.call(function () { driver.hidden = true; RB.audio.sfx.door(); });
         yield RB.tween(s, 'doorOpen', 0, 0.5, 'in');
         yield RB.wait(0.7);
@@ -117,25 +112,24 @@
           player.bag = true;
           ready = true;
         });
-        // You get the controls back while the van is still pulling away.
-        yield RB.tween(van, 'x', -110, 5.5, 'in');
-        yield RB.captionFor('The doors are open. There is no hurry.', 5.0, 22);
+        yield RB.tween(van, 'x', -130, 5.5, 'in');
+        yield RB.captionFor('The doors are open. There is no hurry.', 5.0, 26);
       });
     };
 
     s.p = function () { return player; };
 
     var solids = [
-      { x: -20, y: 0, w: 22, h: 200 },
-      { x: 238, y: 0, w: 22, h: 200 }
+      { x: -20, y: 0, w: 22, h: 300 },
+      { x: 254, y: 0, w: 22, h: 300 }
     ];
-    var bounds = { x0: 10, y0: 74, x1: 218, y1: 96 };
+    var bounds = { x0: 12, y0: 112, x1: 234, y1: 146 };
 
     s.update = function (dt) {
       script.update(dt);
       if (ready && !RB.dialog.active() && !RB.transitioning()) {
         RB.walk(player, dt, solids, bounds);
-        var near = Math.abs(player.x - DOOR_X) < 20 && player.y < 90;
+        var near = Math.abs(player.x - DOOR_X) < 22 && player.y < 138;
         s.showPrompt = near;
         if (near && RB.input.pressed('action')) {
           RB.audio.sfx.door();
@@ -146,180 +140,145 @@
     };
 
     s.draw = function () {
-      // Sky.
-      RB.vgrad(0, 0, RB.W, FACADE + 2, A.skyRamp('night'), 8);
-      A.stars(0, RB.W, 2, FACADE - 4, 0.85);
+      var P = RB.P, OB = RB.ob;
 
-      // Terminal facade.
-      RB.rect(0, FACADE, RB.W, 4, '#0f1425');
-      RB.rect(0, FACADE + 4, RB.W, PAVE - FACADE - 4, '#1a2136');
-      RB.rect(0, FACADE + 4, RB.W, 1, '#28304a');
+      // ---- sky
+      RB.vgrad(0, 0, RB.W, SKY + 4, RB.SKY.night, 10);
+      RB.art.stars(0, RB.W, 2, SKY - 6, 0.9);
 
-      // Window band — mostly dark, a few lit, warm pools beneath the lit ones.
-      RB.rect(0, WIN_Y - 2, RB.W, 22, '#151b2c');
-      for (var i = 0; i < WINDOWS.length; i++) {
-        var wnd = WINDOWS[i];
-        if (wnd.x > RB.W - 6) continue;
-        var c = wnd.lit ? RB.mix('#c9b184', '#e0cb9c', wnd.warm) : '#222a42';
-        RB.rect(wnd.x, WIN_Y, 9, 16, c);
-        RB.rect(wnd.x, WIN_Y, 9, 1, wnd.lit ? '#e8d8b0' : '#2a3350');
-        if (wnd.lit) {
-          RB.ctx.globalAlpha = 0.07;
-          RB.rect(wnd.x - 3, WIN_Y + 16, 15, 8, P.warm4);
+      // ---- terminal: one bay module repeated, with fittings tacked on.
+      var facade = P.s1;
+      var mf = OB.mat(facade);
+      RB.rect(0, SKY, RB.W, PAVE - SKY, mf.front);
+      // Roofline with depth, so the building is a solid and not a backdrop.
+      for (var o = 9; o >= 1; o--) RB.rect(o, SKY - o, RB.W, 1, mf.top);
+      RB.rect(0, SKY, RB.W, 2, mf.edge);
+
+      for (var i = 0; i < BAYS.length; i++) {
+        var bx = i * 22 + 2, B = BAYS[i];
+        RB.rect(bx, SKY + 4, 1, PAVE - SKY - 4, mf.side);        // bay seam
+        RB.rect(bx + 1, SKY + 4, 1, PAVE - SKY - 4, mf.top);
+        if (bx > DOOR_X - 26 && bx < DOOR_X + 22) continue;      // leave the entrance clear
+        var c = B.lit ? RB.mix(P.w5, P.cream, B.warm) : P.sh;
+        RB.rect(bx + 5, WIN_Y, 12, 18, c);
+        RB.rect(bx + 5, WIN_Y, 12, 1, B.lit ? P.cream : P.s2);
+        RB.rect(bx + 5, WIN_Y + 17, 12, 1, P.ink);
+        if (B.lit) {
+          RB.ctx.globalAlpha = 0.05;
+          RB.rect(bx, WIN_Y + 18, 22, CANOPY - WIN_Y - 18, P.w5);
           RB.ctx.globalAlpha = 1;
         }
       }
-      RB.rect(0, WIN_Y + 20, RB.W, 2, '#101627');
-      RB.rect(0, WIN_Y + 22, RB.W, PAVE - WIN_Y - 22, '#161d30');
-
-      A.sign(76, 26, 'DEPARTURES', 88, '#0d1322', P.cream);
-
-      // The entrance: the brightest thing on screen, which is the whole point.
-      RB.rect(DOOR_X - 20, 64, 40, PAVE - 64, '#0c1120');
-      RB.rect(DOOR_X - 18, 66, 36, PAVE - 66, '#d8c49a');
-      RB.rect(DOOR_X - 1, 66, 2, PAVE - 66, '#8a7a5e');
-      RB.rect(DOOR_X - 18, 66, 36, 1, '#f0e2c0');
-      RB.ctx.globalAlpha = 0.14;
-      RB.rect(DOOR_X - 28, PAVE, 56, 20, P.warm4);
-      RB.ctx.globalAlpha = 0.07;
-      RB.rect(DOOR_X - 38, PAVE, 76, 26, P.warm4);
+      // Canopy over the frontage, below the glazing — one big tacked-on
+      // fitting, and the thing that gives the facade a horizon.
+      OB.box(0, CANOPY, RB.W, 7, 9, P.s2);
+      RB.ctx.globalAlpha = 0.30;
+      RB.rect(0, CANOPY + 7, RB.W, 5, P.ink);
       RB.ctx.globalAlpha = 1;
 
-      // Pavement, kerb, road.
-      RB.rect(0, PAVE, RB.W, KERB - PAVE, '#2a3145');
-      RB.rect(0, PAVE, RB.W, 1, '#38415a');
-      for (var px = 0; px < RB.W; px += 22) RB.rect(px, PAVE, 1, KERB - PAVE, '#252c3f');
-      RB.rect(0, KERB, RB.W, 3, '#3c4459');
-      RB.rect(0, ROAD, RB.W, RB.H - ROAD, '#141a29');
-      RB.rect(0, ROAD, RB.W, 1, '#1d2437');
-      for (var rx = 0; rx < RB.W; rx += 34) RB.rect(rx, 146, 16, 2, '#1f2739');
+      OB.sign(92, 26, 'DEPARTURES', 92, P.blu1, P.cream);
 
-      // Actors first, then the van over them — anyone on the pavement is
-      // behind it, which is what puts the van at the kerb rather than on it.
+      // ---- entrance: a recess with light pouring out of it
+      var dTop = CANOPY + 9, dH = PAVE - dTop;
+      RB.rect(DOOR_X - 25, dTop - 2, 50, dH + 2, P.ink);
+      RB.rect(DOOR_X - 22, dTop, 44, dH, RB.mix(P.cream, P.w5, 0.25));
+      RB.rect(DOOR_X - 22, dTop, 44, 2, '#fff4d8');
+      RB.rect(DOOR_X - 1, dTop, 2, dH, P.w3);
+      RB.rect(DOOR_X - 22, dTop, 2, dH, P.w4);
+      RB.rect(DOOR_X + 20, dTop, 2, dH, P.w4);
+      // Light pouring out onto the pavement.
+      RB.ctx.globalAlpha = 0.20;
+      OB.slab(DOOR_X - 30, PAVE + 22, 60, 22, P.cream);
+      RB.ctx.globalAlpha = 0.09;
+      OB.slab(DOOR_X - 42, PAVE + 32, 84, 30, P.w5);
+      RB.ctx.globalAlpha = 0.05;
+      OB.slab(DOOR_X - 54, PAVE + 40, 108, 38, P.w5);
+      RB.ctx.globalAlpha = 1;
+
+      // ---- pavement, kerb, road
+      OB.floor(0, RB.W, PAVE, KERB, P.s2);
+      OB.box(0, KERB, RB.W, 6, 4, P.s3);
+      RB.rect(0, ROAD, RB.W, RB.H - ROAD, P.sh);
+      RB.rect(0, ROAD, RB.W, 1, P.s1);
+      for (var rx = 0; rx < RB.W; rx += 44) RB.rect(rx, RB.H - 22, 20, 2, P.s1);
+
+      // ---- actors, then the van in front of them
       var list = [];
       if (!driver.hidden) list.push(driver);
       if (!player.hidden) list.push(player);
-      list.sort(function (a, b) { return a.y - b.y; });
-      list.forEach(function (a) { a.draw(P.night1, 0.28); });
+      list.sort(function (a2, b2) { return a2.y - b2.y; });
+      list.forEach(function (a2) { a2.draw(P.blu1, 0.26); });
 
       if (bag) {
         RB.ctx.fillStyle = 'rgba(0,0,0,0.28)';
-        RB.ctx.fillRect(Math.round(bag.x), Math.round(bag.y + 10), 8, 2);
-        RB.drawSprite(RB.sprites.bag, bag.x, bag.y, RB.cast.you, false, P.night1, 0.28);
+        RB.ctx.fillRect(Math.round(bag.x), Math.round(bag.y + 13), 12, 2);
+        RB.drawSprite(RB.sprites.bag, bag.x, bag.y, RB.cast.you, false, P.blu1, 0.26);
       }
 
       drawVan(van, s.doorOpen);
 
-      if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, 54, 'A  enter');
+      if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, WIN_Y - 22, 'A  enter');
     };
 
-    // A van, nose to the left, because it arrives and leaves heading left.
-    // The old one had its roof over the front half and its wheels as flat
-    // rectangles bolted under a car-height body, which is why it read as
-    // backwards: a van is a tall box with a short bonnet, not a long bonnet
-    // with a cabin behind it.
+    // The van, in oblique: side face true, roof sheared up-right, nose to the
+    // left because that is the way it both arrives and leaves.
     function drawVan(v, open) {
+      var P = RB.P, OB = RB.ob;
       var x = Math.round(v.x), y = Math.round(v.y);
-      if (x > RB.W + 100 || x < -110) return;
+      if (x > RB.W + 120 || x < -130) return;
 
-      var body = '#3d4a63';
-      var light = RB.shade(body, 0.20);
-      var mid = RB.shade(body, -0.18);
-      var dark = RB.shade(body, -0.42);
-      var glass = '#161e34';
-      var glassHi = '#26314e';
+      var body = P.blu2, m = OB.mat(body);
+      var glass = P.blu1, gm = OB.mat(glass);
 
-      // Ground shadow and the pool the headlamps throw down the road.
       RB.ctx.fillStyle = 'rgba(0,0,0,0.34)';
-      RB.ctx.fillRect(x + 2, y + 36, 78, 4);
+      RB.ctx.fillRect(x + 2, y + 42, 88, 5);
       RB.ctx.globalAlpha = 0.09;
-      RB.rect(x - 52, y + 16, 54, 16, P.warm4);
-      RB.ctx.globalAlpha = 0.05;
-      RB.rect(x - 84, y + 18, 36, 12, P.warm4);
+      OB.slab(x - 60, y + 34, 62, 16, P.w5);
       RB.ctx.globalAlpha = 1;
 
-      // Bonnet: short, low, ahead of the cab.
-      RB.rect(x + 1, y + 13, 13, 18, mid);
-      RB.rect(x + 1, y + 13, 13, 1, light);
-      RB.rect(x, y + 16, 2, 12, dark);
+      OB.box(x + 2, y + 16, 14, 22, 7, RB.shade(body, -0.16));   // bonnet
+      OB.box(x + 10, y + 2, 78, 36, 10, body);                   // body
 
-      // Main box.
-      RB.rect(x + 8, y + 1, 72, 30, body);
-      RB.rect(x + 8, y + 1, 72, 2, light);          // roofline
-      RB.rect(x + 8, y + 29, 72, 2, dark);
-      RB.rect(x + 78, y + 1, 2, 30, dark);          // rear face
+      // Glazing, one module repeated.
+      RB.rect(x + 14, y + 7, 16, 13, gm.front);
+      RB.rect(x + 14, y + 7, 16, 1, gm.top);
+      [34, 54, 70].forEach(function (gx) {
+        RB.rect(x + gx, y + 7, 15, 13, gm.front);
+        RB.rect(x + gx, y + 7, 15, 1, gm.top);
+      });
+      RB.rect(x + 10, y + 22, 78, 1, m.edge);
+      RB.rect(x + 10, y + 23, 78, 1, m.side);
 
-      // Windscreen, stepped so it reads as raked.
-      RB.rect(x + 11, y + 6, 3, 10, glass);
-      RB.rect(x + 12, y + 5, 4, 11, glass);
-      RB.rect(x + 15, y + 4, 6, 12, glass);
-      RB.rect(x + 15, y + 4, 6, 1, glassHi);
-
-      // Side glass: door, then two rear lights.
-      RB.rect(x + 25, y + 4, 15, 12, glass);
-      RB.rect(x + 25, y + 4, 15, 1, glassHi);
-      RB.rect(x + 45, y + 4, 14, 12, glass);
-      RB.rect(x + 45, y + 4, 14, 1, glassHi);
-      RB.rect(x + 63, y + 4, 14, 12, glass);
-      RB.rect(x + 63, y + 4, 14, 1, glassHi);
-
-      // Belt line and lower panel.
-      RB.rect(x + 8, y + 17, 72, 1, light);
-      RB.rect(x + 8, y + 18, 72, 1, dark);
-      RB.rect(x + 8, y + 27, 72, 2, mid);
-
-      // Door shut lines.
-      RB.rect(x + 23, y + 3, 1, 26, dark);
-      RB.rect(x + 42, y + 3, 1, 26, dark);
-
-      // The sliding door, open.
       if (open > 0.02) {
-        var ow = Math.round(open * 17);
-        RB.rect(x + 25, y + 3, ow, 26, '#14161f');                 // aperture
+        var ow = Math.round(open * 19);
+        RB.rect(x + 32, y + 5, ow, 32, P.ink);
         if (ow > 3) {
-          // A dim interior with the dome light on, not a lit panel: glow at
-          // the roof, seat back below, floor catching a little of it.
-          RB.rect(x + 26, y + 4, ow - 2, 2, '#b09468');
-          RB.rect(x + 26, y + 6, ow - 2, 4, '#6d5c3e');
-          RB.rect(x + 27, y + 12, ow - 4, 13, '#2b2b36');
-          RB.rect(x + 27, y + 12, ow - 4, 1, '#3d3d4c');
-          RB.rect(x + 26, y + 26, ow - 2, 3, '#4a4130');
+          RB.rect(x + 33, y + 6, ow - 2, 2, P.w5);
+          RB.rect(x + 33, y + 8, ow - 2, 5, P.w2);
+          RB.rect(x + 34, y + 15, ow - 4, 16, P.s1);
+          RB.rect(x + 33, y + 32, ow - 2, 4, P.w2);
         }
-        RB.rect(x + 25 + ow, y + 2, 2, 28, dark);                  // leading edge
-        RB.ctx.globalAlpha = 0.13 * open;
-        RB.rect(x + 18, y + 28, 32, 14, P.warm4);                  // spill
+        RB.rect(x + 32 + ow, y + 4, 2, 34, m.deep);
+        RB.ctx.globalAlpha = 0.14 * open;
+        OB.slab(x + 22, y + 40, 40, 16, P.w5);
         RB.ctx.globalAlpha = 1;
       }
 
-      // Arches, then wheels sitting in them.
-      arch(x + 20, y + 31, 10);
-      arch(x + 64, y + 31, 10);
-      wheel(x + 20, y + 31, 7);
-      wheel(x + 64, y + 31, 7);
+      wheel(x + 24, y + 38, 8);
+      wheel(x + 74, y + 38, 8);
+      RB.rect(x + 1, y + 22, 5, 6, P.cream);       // headlamp
+      RB.rect(x + 88, y + 22, 2, 6, P.red2);       // tail
 
-      // Lamps.
-      RB.rect(x, y + 17, 4, 5, '#f4e6b8');
-      RB.rect(x + 1, y + 23, 3, 4, mid);            // grille
-      RB.rect(x + 78, y + 17, 2, 5, P.red);
-
-      function arch(cx, cy, r) {
-        for (var dy = -r; dy <= 0; dy++) {
-          var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
-          if (half <= 0) continue;
-          RB.rect(cx - half, cy + dy, half * 2, 1, dark);
-        }
-      }
       function wheel(cx, cy, r) {
-        disc(cx, cy, r, '#14141c');
-        disc(cx, cy, r - 3, '#39425a');
-        disc(cx, cy, r - 5, '#1d2334');
+        disc(cx, cy, r, P.ink);
+        disc(cx, cy, r - 3, P.s2);
+        disc(cx, cy, r - 5, P.s1);
       }
       function disc(cx, cy, r, c) {
         if (r <= 0) return;
         for (var dy = -r; dy <= r; dy++) {
           var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
-          if (half <= 0) continue;
-          RB.rect(cx - half, cy + dy, half * 2, 1, c);
+          if (half > 0) RB.rect(cx - half, cy + dy, half * 2, 1, c);
         }
       }
     }
