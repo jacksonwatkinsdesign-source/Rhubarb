@@ -23,29 +23,29 @@ const path = require('path');
     ];
     // The player, every pose.
     rows.forEach((r, ri) => {
-      RB.font.draw(r[0], 2, 12 + ri * 36, RB.P.s5);
+      RB.font.draw(r[0], 2, 120 + ri * 42, RB.P.s5);
       r[1].forEach((rowsData, ci) => {
         const flip = (r[0] === 'sit' && ci === 2);
-        RB.drawSprite(rowsData, 34 + ci * 24, 2 + ri * 36, RB.cast.you, flip);
+        RB.drawSprite(rowsData, 34 + ci * 24, 20 + ri * 42, RB.cast.you, flip);
       });
     });
 
     // The rest of the cast, facing camera.
     const names = ['driver','agent','guard','suit','student','elder','kid','coat','crew'];
     names.forEach((n, i) => {
-      RB.drawSprite(S.down[0], 140 + (i % 5) * 24, 4 + Math.floor(i / 5) * 40, RB.cast[n]);
-      RB.font.draw(n, 138 + (i % 5) * 24, 34 + Math.floor(i / 5) * 40, RB.P.s4);
+      RB.drawSprite(S.down[0], 140 + (i % 5) * 24, 22 + Math.floor(i / 5) * 46, RB.cast[n]);
+      RB.font.draw(n, 138 + (i % 5) * 24, 322 + Math.floor(i / 5) * 46, RB.P.s4);
     });
     // Cup-in-hand check, every facing, plus the sill cup with steam.
-    RB.font.draw('holding', 2, 154, RB.P.gold2);
+    RB.font.draw('holding', 2, 192, RB.P.gold2);
     ['down','right','left','up'].forEach((d, i) => {
-      const a = new RB.Actor({ x: 40 + i * 28, y: 158, pal: RB.cast.you, dir: d, cup: true, shadow: false });
+      const a = new RB.Actor({ x: 40 + i * 28, y: 196, pal: RB.cast.you, dir: d, cup: true, shadow: false });
       a.draw();
     });
-    RB.trayCoffee && RB.trayCoffee(RB.now, 0);
-    RB.font.draw('player: blue suit', 2, 196, RB.P.gold2);
-    RB.font.draw('the cast', 140, 120, RB.P.gold2);
-    RB.drawSprite(S.bag, 14, 206, RB.cast.you);
+    
+    RB.font.draw('player: blue suit', 2, 216, RB.P.gold2);
+    RB.font.draw('the cast', 140, 132, RB.P.gold2);
+    RB.drawSprite(S.bag, 60, 216, RB.cast.you);
     RB.present();
   });
 

@@ -178,7 +178,28 @@
       RB.rect(0, CANOPY + 7, RB.W, 5, P.ink);
       RB.ctx.globalAlpha = 1;
 
+      // Plant on the roof — ducting and vents, the one bit of mess.
+      [30, 118, 200].forEach(function (pv, i) {
+        OB.box(pv, SKY - 12, 14 + i * 4, 6, 5, P.s1);
+        if (i !== 1) RB.rect(pv + 4, SKY - 16, 2, 5, P.s2);
+      });
       OB.sign(92, 26, 'DEPARTURES', 92, P.blu1, P.cream);
+      OB.sign(14, 50, 'T1', 20, P.blu1, P.gold3);
+      OB.sign(190, 50, 'LANE 2', 42, P.blu1, P.pale);
+
+      // ---- ground floor: glazing with the hall behind it
+      var gTop = CANOPY + 9;
+      RB.rect(0, gTop, RB.W, PAVE - gTop, P.outline);
+      for (var g = 2; g < RB.W; g += 22) {
+        if (g > DOOR_X - 28 && g < DOOR_X + 24) continue;
+        RB.rect(g + 2, gTop + 2, 17, PAVE - gTop - 4, RB.mix(P.w3, P.ink, 0.45));
+        RB.rect(g + 2, gTop + 2, 17, 2, RB.mix(P.w4, P.ink, 0.3));
+        // Silhouettes of the hall: a counter run, and someone at it.
+        RB.rect(g + 2, PAVE - 9, 17, 5, P.ink);
+        RB.rect(g + 4, PAVE - 8, 5, 4, RB.mix(P.w2, P.ink, 0.4));
+        if ((g / 22) % 3 === 1) RB.rect(g + 11, PAVE - 15, 5, 7, P.ink);
+        RB.rect(g + 10, gTop + 2, 1, PAVE - gTop - 4, P.outline);
+      }
 
       // ---- entrance: a recess with light pouring out of it
       var dTop = CANOPY + 9, dH = PAVE - dTop;
@@ -199,10 +220,34 @@
 
       // ---- pavement, kerb, road
       OB.floor(0, RB.W, PAVE, KERB, P.s3);
+
+      // Tactile paving strip and a painted no-parking line along the kerb.
+      for (var tp = 0; tp < RB.W; tp += 6) RB.rect(tp, KERB - 7, 3, 3, RB.shade(P.s3, -0.24));
+      OB.paint(0, KERB - 12, RB.W, 2, P.gold3, 0.5);
       OB.box(0, KERB, RB.W, 6, 4, P.s4);
       RB.rect(0, ROAD, RB.W, RB.H - ROAD, P.ink);
       RB.rect(0, ROAD, RB.W, 1, P.outline);
-      for (var rx = 0; rx < RB.W; rx += 44) RB.rect(rx, RB.H - 22, 20, 2, P.s1);
+      OB.paint(0, ROAD + 5, RB.W, 2, P.gold3, 0.28);
+      for (var rx = 4; rx < RB.W; rx += 44) OB.paint(rx, RB.H - 24, 22, 3, P.pale, 0.30);
+
+      // Canopy columns, standing on the pavement. Vertical rhythm, and the
+      // thing that turns a floating slab into structure.
+      [26, 100, 226].forEach(function (cx) { OB.column(cx, CANOPY + 6, PAVE + 22, P.s2); });
+
+      // Soffit lights under the canopy, each with its pool on the pavement.
+      for (var sl = 30; sl < RB.W; sl += 40) {
+        RB.rect(sl, CANOPY + 7, 12, 3, P.cream);
+        RB.rect(sl, CANOPY + 10, 12, 1, P.w3);
+        RB.ctx.globalAlpha = 0.06;
+        OB.slab(sl - 10, PAVE + 26, 32, 24, P.w5);
+        RB.ctx.globalAlpha = 1;
+      }
+
+      // Street furniture: a trolley rank, bins, bollards along the kerb.
+      OB.trolleys(40, PAVE + 26, 4, P.s3);
+      OB.bin(120, PAVE + 24, P.s2);
+      OB.bin(214, PAVE + 28, P.s2);
+      [8, 76, 108, 142, 176, 244].forEach(function (bo) { OB.bollard(bo, KERB - 2, P.s2); });
 
       // ---- actors, then the van in front of them
       var list = [];

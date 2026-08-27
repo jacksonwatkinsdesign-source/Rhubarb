@@ -31,37 +31,41 @@
   function S(rows) { return rows.map(R); }
 
   // ------------------------------------------------------------------ down
+  // Half the sprite is head. That is not a mistake — the expressiveness of a
+  // Battle Network overworld sprite comes from a big rounded skull with big
+  // eyes in it, and a small tidy body underneath. Eyes are three rows tall
+  // with a highlight, which is the single thing that makes a face read.
   var HEAD_DOWN = [
-    '6. 8t 6.',
-    '5. 1t 8d 1t 5.',
-    '4. 1t 10d 1t 4.',
-    '3. 1t 2d 8H 2d 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 2h 8k 2h 1t 3.',
-    '3. 1t 1h 10k 1h 1t 3.',
-    '3. 1t 1h 10k 1h 1t 3.',
-    '3. 1t 1h 2k 2t 2k 2t 2k 1h 1t 3.',
-    '3. 1t 1h 2k 1e 1q 2k 1q 1e 2k 1h 1t 3.',
-    '3. 1t 1h 10k 1h 1t 3.',
-    '3. 1t 1h 4k 2K 4k 1h 1t 3.',
+    '5. 10t 5.',
+    '3. 2t 10d 2t 3.',
+    '2. 1t 14d 1t 2.',
+    '2. 1t 2d 10H 2d 1t 2.',
+    '2. 1t 1d 12h 1d 1t 2.',
+    '2. 1t 1h 2d 8k 2d 1h 1t 2.',
+    '2. 1t 1h 12k 1h 1t 2.',
+    '2. 1t 1h 12k 1h 1t 2.',
+    '2. 1t 1h 2k 3t 2k 3t 2k 1h 1t 2.',
+    '2. 1t 1h 2k 1q 2e 2k 2e 1q 2k 1h 1t 2.',
+    '2. 1t 1h 2k 3e 2k 3e 2k 1h 1t 2.',
+    '2. 1t 1h 12k 1h 1t 2.',
+    '2. 1t 1h 4k 4K 4k 1h 1t 2.',
+    '2. 1t 14k 1t 2.',
     '3. 1t 12k 1t 3.',
-    '4. 1t 10k 1t 4.',
-    '5. 1t 8K 1t 5.'
+    '4. 1t 10K 1t 4.'
   ];
   var TORSO_DOWN = [
-    '3. 1t 1L 3s 4w 3s 1S 1t 3.',
+    '3. 1t 2L 2s 4w 2s 2S 1t 3.',
     '2. 1t 1L 4s 1w 2c 1w 4s 1S 1t 2.',
     '2. 1t 1L 5s 2c 5s 1S 1t 2.',
     '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
     '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
     '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
     '2. 1t 1L 12s 1S 1t 2.',
+    '3. 1t 12s 1t 3.',
     '3. 1t 12s 1t 3.'
   ];
   var LEGS_IDLE = [
     '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
     '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
     '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
     '3. 1t 5P 2t 5P 1t 3.',
@@ -73,7 +77,6 @@
     '3. 1t 5p 2t 5p 1t 3.',
     '3. 1t 1A 5p 2t 1A 3p 1t 3.',
     '3. 1t 1A 5p 2t 1A 3p 1t 3.',
-    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
     '3. 1t 6P 2t 4P 1t 3.',
     '3. 1t 6o 2t 4o 1t 3.',
     '3. 1t 1O 5o 2t 1O 3o 1t 3.',
@@ -81,7 +84,6 @@
   ];
   var LEGS_B = [
     '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
     '3. 1t 1A 3p 2t 1A 5p 1t 3.',
     '3. 1t 1A 3p 2t 1A 5p 1t 3.',
     '3. 1t 4P 2t 6P 1t 3.',
@@ -92,88 +94,91 @@
 
   // -------------------------------------------------------------------- up
   var HEAD_UP = [
-    '6. 8t 6.',
-    '5. 1t 8d 1t 5.',
-    '4. 1t 10d 1t 4.',
-    '3. 1t 2d 8H 2d 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 12h 1t 3.',
-    '3. 1t 2h 8d 2h 1t 3.',
+    '5. 10t 5.',
+    '3. 2t 10d 2t 3.',
+    '2. 1t 14d 1t 2.',
+    '2. 1t 2d 10H 2d 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 14h 1t 2.',
+    '2. 1t 2h 10d 2h 1t 2.',
+    '2. 1t 14d 1t 2.',
+    '2. 1t 14d 1t 2.',
     '3. 1t 12d 1t 3.',
-    '4. 1t 10d 1t 4.',
-    '5. 1t 8K 1t 5.'
+    '4. 1t 10K 1t 4.'
   ];
   var TORSO_UP = [
-    '3. 1t 1L 10s 1S 1t 3.',
+    '3. 1t 2L 8s 2S 1t 3.',
     '2. 1t 1L 12s 1S 1t 2.',
     '2. 1t 1L 12s 1S 1t 2.',
     '2. 1t 1k 1L 10s 1S 1K 1t 2.',
     '2. 1t 1k 1L 10s 1S 1K 1t 2.',
     '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
     '2. 1t 1L 12s 1S 1t 2.',
+    '3. 1t 12s 1t 3.',
     '3. 1t 12s 1t 3.'
   ];
 
   // ------------------------------------------------------------------ side
-  var SIDE_IDLE = [
-    '5. 8t 7.',
-    '4. 1t 8d 1t 6.',
-    '3. 1t 10d 1t 5.',
-    '2. 1t 2d 8H 1d 1t 5.',
-    '2. 1t 10h 1k 1t 5.',
-    '2. 1t 8h 3k 1t 5.',
-    '2. 1t 6h 5k 1t 5.',
-    '2. 1t 5h 6k 1t 5.',
-    '2. 1t 4h 2k 2t 3k 1t 5.',
-    '2. 1t 4h 2k 1e 1q 3k 1t 5.',
-    '2. 1t 4h 7k 1t 5.',
-    '2. 1t 3h 7k 1K 1t 5.',
-    '3. 1t 10k 1t 5.',
-    '4. 1t 8k 1t 6.',
-    '5. 1t 6K 1t 7.',
-    '3. 1t 1L 6s 2w 1S 1t 5.',
-    '3. 1t 1L 7s 1c 1S 1t 5.',
-    '3. 1t 1L 8s 1S 1t 5.',
-    '3. 1t 1L 8s 1S 1t 1k 4.',
-    '3. 1t 1L 8s 1S 1t 1k 4.',
-    '3. 1t 1L 8s 1S 1t 5.',
-    '3. 1t 1L 8s 1S 1t 5.',
-    '3. 1t 10s 1t 5.',
-    '3. 1t 10s 1t 5.',
-    '3. 1t 10p 1t 5.',
-    '3. 1t 1A 8p 1P 1t 5.',
-    '3. 1t 1A 8p 1P 1t 5.',
-    '3. 1t 1A 8p 1P 1t 5.',
-    '3. 1t 10P 1t 5.',
-    '3. 1t 10o 1t 5.',
-    '3. 1t 1O 9o 1t 5.',
-    '3. 12t 5.'
+  var HEAD_SIDE = [
+    '4. 10t 6.',
+    '2. 2t 10d 2t 4.',
+    '1. 1t 14d 1t 3.',
+    '1. 1t 2d 10H 2d 1t 3.',
+    '1. 1t 12h 2k 1t 3.',
+    '1. 1t 9h 5k 1t 3.',
+    '1. 1t 7h 7k 1t 3.',
+    '1. 1t 6h 8k 1t 3.',
+    '1. 1t 5h 2k 3t 4k 1t 3.',
+    '1. 1t 5h 2k 1q 2e 4k 1t 3.',
+    '1. 1t 5h 2k 3e 4k 1t 3.',
+    '1. 1t 5h 9k 1t 3.',
+    '1. 1t 4h 6k 4K 1t 3.',
+    '2. 1t 13k 1t 3.',
+    '3. 1t 11k 1t 4.',
+    '4. 1t 9K 1t 5.'
+  ];
+  var TORSO_SIDE = [
+    '3. 1t 1L 7s 2w 1S 1t 4.',
+    '3. 1t 1L 8s 1c 1S 1t 4.',
+    '3. 1t 1L 9s 1S 1t 4.',
+    '3. 1t 1L 9s 1S 1t 1k 3.',
+    '3. 1t 1L 9s 1S 1t 1k 3.',
+    '3. 1t 1L 9s 1S 1t 4.',
+    '3. 1t 11s 1t 4.',
+    '3. 1t 11s 1t 4.',
+    '3. 1t 11s 1t 4.'
+  ];
+  var SIDE_LEGS_IDLE = [
+    '3. 1t 11p 1t 4.',
+    '3. 1t 1A 9p 1P 1t 4.',
+    '3. 1t 1A 9p 1P 1t 4.',
+    '3. 1t 11P 1t 4.',
+    '3. 1t 11o 1t 4.',
+    '3. 1t 1O 10o 1t 4.',
+    '3. 13t 4.'
   ];
   var SIDE_LEGS_A = [
-    '3. 1t 10p 1t 5.',
-    '2. 1t 1A 5p 2t 1A 2p 1t 5.',
-    '2. 1t 1A 5p 2t 1A 2p 1t 5.',
-    '2. 1t 1A 5p 2t 1A 2p 1t 5.',
-    '2. 1t 6P 2t 3P 1t 5.',
-    '2. 1t 6o 2t 3o 1t 5.',
-    '2. 1t 1O 5o 2t 1O 2o 1t 5.',
+    '3. 1t 11p 1t 4.',
+    '2. 1t 1A 6p 2t 1A 2p 1t 4.',
+    '2. 1t 1A 6p 2t 1A 2p 1t 4.',
+    '2. 1t 7P 2t 3P 1t 4.',
+    '2. 1t 7o 2t 3o 1t 4.',
+    '2. 1t 1O 6o 2t 1O 2o 1t 4.',
     '2. 7t 2. 4t 5.'
   ];
   var SIDE_LEGS_B = [
-    '3. 1t 10p 1t 5.',
-    '4. 1t 8p 1t 6.',
-    '4. 1t 8p 1t 6.',
-    '4. 1t 8p 1t 6.',
-    '4. 1t 8P 1t 6.',
-    '4. 1t 8o 1t 6.',
-    '4. 1t 1O 7o 1t 6.',
-    '4. 10t 6.'
+    '3. 1t 11p 1t 4.',
+    '4. 1t 9p 1t 5.',
+    '4. 1t 9p 1t 5.',
+    '4. 1t 9P 1t 5.',
+    '4. 1t 9o 1t 5.',
+    '4. 1t 1O 8o 1t 5.',
+    '4. 11t 5.'
   ];
 
   var DOWN = {
@@ -187,9 +192,9 @@
     2: S(HEAD_UP.concat(TORSO_UP, LEGS_B))
   };
   var SIDE = {
-    0: S(SIDE_IDLE),
-    1: S(SIDE_IDLE.slice(0, 24).concat(SIDE_LEGS_A)),
-    2: S(SIDE_IDLE.slice(0, 24).concat(SIDE_LEGS_B))
+    0: S(HEAD_SIDE.concat(TORSO_SIDE, SIDE_LEGS_IDLE)),
+    1: S(HEAD_SIDE.concat(TORSO_SIDE, SIDE_LEGS_A)),
+    2: S(HEAD_SIDE.concat(TORSO_SIDE, SIDE_LEGS_B))
   };
 
   // ------------------------------------------------------------------ props
@@ -234,17 +239,17 @@
 
   // Seated poses derive from the standing idle, so they cannot drift from it.
   function seat(rows, legs) {
-    return ['20.', '20.'].map(R).concat(rows.slice(0, 24)).concat(S(legs));
+    return ['20.', '20.'].map(R).concat(rows.slice(0, 25)).concat(S(legs));
   }
   var SIT_D = seat(DOWN[0], [
     '3. 1t 12p 1t 3.', '3. 1t 1A 10p 1P 1t 3.',
     '3. 1t 12P 1t 3.', '3. 1t 4o 4t 4o 1t 3.',
-    '3. 5t 4. 5t 3.', '20.'
+    '3. 5t 4. 5t 3.'
   ]);
   var SIT_S = seat(SIDE[0], [
     '3. 1t 12p 1t 3.', '3. 1t 1A 11p 1t 3.',
     '3. 1t 12P 1t 3.', '3. 1t 10o 1t 5.',
-    '3. 9t 8.', '20.'
+    '3. 9t 8.'
   ]);
   check('sitDown', SIT_D, W); check('sitSide', SIT_S, W);
 

@@ -155,6 +155,51 @@
     RB.ctx.globalAlpha = 1;
   };
 
+  // ------------------------------------------------- airport street furniture
+  // All the same box, at different sizes, with different fittings. A bollard
+  // is a bin is a column is a trolley stack.
+
+  OB.bollard = function (x, yBase, base) {
+    OB.box(x, yBase - 10, 4, 10, 2, base);
+    RB.wrect(x, yBase - 7, 4, 1, RB.P.gold3);        // reflective band
+  };
+
+  OB.bin = function (x, yBase, base) {
+    OB.box(x, yBase - 18, 13, 18, 5, base);
+    OB.box(x - 1, yBase - 22, 15, 5, 6, RB.shade(base, -0.22));
+    RB.wrect(x + 3, yBase - 20, 7, 2, RB.P.outline);   // the slot
+  };
+
+  // A nested rank of luggage trolleys, which is the most airport object there
+  // is. Drawn back to front so they overlap like the real thing.
+  OB.trolleys = function (x, yBase, n, base) {
+    var m = OB.mat(base), OL = RB.P.outline;
+    for (var i = n - 1; i >= 0; i--) {
+      var tx = x + i * 6, ty = yBase - i * 2;
+      RB.wrect(tx, ty - 26, 2, 26, m.front);            // handle post
+      RB.wrect(tx, ty - 26, 2, 1, m.edge);
+      RB.wrect(tx, ty - 27, 12, 2, m.top);              // handle bar
+      RB.wrect(tx - 1, ty - 28, 14, 1, OL);
+      OB.box(tx + 1, ty - 12, 14, 8, 5, base);          // basket
+      RB.wrect(tx + 2, ty - 3, 3, 3, OL);               // wheels
+      RB.wrect(tx + 11, ty - 3, 3, 3, OL);
+    }
+  };
+
+  // A column holding the canopy up. Vertical rhythm, and the thing that makes
+  // a kerbside canopy read as structure rather than a floating slab.
+  OB.column = function (x, yTop, yBase, base) {
+    OB.box(x, yTop, 7, yBase - yTop, 4, base);
+    OB.box(x - 1, yBase - 4, 9, 5, 5, RB.shade(base, -0.18));
+  };
+
+  // Painted markings on the ground: flat, no depth, just paint.
+  OB.paint = function (x, y, w, h, col, alpha) {
+    RB.ctx.globalAlpha = alpha === undefined ? 0.55 : alpha;
+    RB.wrect(x, y, w, h, col);
+    RB.ctx.globalAlpha = 1;
+  };
+
   // Ceiling with recessed strips, and the warm pool each one throws.
   OB.ceiling = function (x0, w, h, base, strip, floorY, warmth) {
     var m = OB.mat(base);
