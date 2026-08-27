@@ -43,7 +43,19 @@ const path = require('path');
       a.draw();
     });
     
-    RB.font.draw('player: blue suit', 2, 216, RB.P.gold2);
+    // Zoomed faces — draw each head pixel as a 3x3 block.
+    RB.font.draw('faces', 2, 214, RB.P.gold2);
+    const zoom = (rows, ox, oy, pal, flip) => {
+      for (let ry = 0; ry < 16; ry++) for (let rx = 0; rx < 20; rx++) {
+        const key = rows[ry][flip ? 19 - rx : rx];
+        if (key === '.') continue;
+        RB.rect(ox + rx * 3, oy + ry * 3, 3, 3, pal[key] || '#f0f');
+      }
+    };
+    zoom(S.down[0], 44, 200, RB.cast.you);
+    zoom(S.side[0], 110, 200, RB.cast.you);
+    zoom(S.down[0], 176, 200, RB.cast.elder);
+    zoom(S.down[0], 242, 200, RB.cast.kid);
     RB.font.draw('the cast', 140, 132, RB.P.gold2);
     RB.drawSprite(S.bag, 60, 216, RB.cast.you);
     RB.present();
