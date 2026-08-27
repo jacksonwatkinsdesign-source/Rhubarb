@@ -274,14 +274,17 @@
     var VAN_LEN = 92, VAN_DEP = 11;
 
     function roofAt(dx) {
-      if (dx < 3) return 26;                      // rounded nose tip
-      if (dx < 13) return 22;                     // bonnet
-      if (dx < 25) return 22 - (dx - 13) * 1.5;   // windscreen rake
+      if (dx < 2) return 28;                      // low nose tip
+      if (dx < 5) return 26;
+      if (dx < 9) return 24;                      // bonnet slopes back
+      if (dx < 14) return 23;
+      if (dx < 26) return 23 - (dx - 14) * 1.6;   // windscreen rake
       if (dx > VAN_LEN - 3) return 6;             // tail corner
       return 4;                                   // cabin roof
     }
     function sillAt(dx) {
-      if (dx < 3) return 34;
+      if (dx < 2) return 32;
+      if (dx < 5) return 34;
       if (dx > VAN_LEN - 3) return 36;
       return 38;
     }
@@ -330,9 +333,9 @@
       RB.rect(x - 1, y + sillAt(10), VAN_LEN + VAN_DEP + 2, 1, OL);
 
       // Glazing: the windscreen follows the rake, the side lights are square.
-      for (dx = 15; dx < 25; dx++) {
+      for (dx = 16; dx < 26; dx++) {
         var wt = y + roofAt(dx) + 3;
-        RB.rect(x + dx, wt, 1, 18 - (dx - 15), gm.front);
+        RB.rect(x + dx, wt, 1, 17 - (dx - 16), gm.front);
         RB.rect(x + dx, wt, 1, 1, gm.top);
       }
       [30, 50, 68].forEach(function (gx) {
@@ -374,11 +377,11 @@
       wheel(x + 74, y + 38, 8);
 
       // Lamps, grille, mirror, bumper.
-      RB.rect(x + 1, y + 27, 5, 5, P.cream);
-      RB.rect(x, y + 26, 7, 1, OL);
-      RB.rect(x + 2, y + 33, 8, 2, m.deep);
-      RB.rect(x + 12, y + 18, 4, 2, m.side);          // mirror arm
-      RB.rect(x + 10, y + 15, 3, 5, P.s2);            // mirror
+      RB.rect(x + 2, y + 28, 5, 4, P.cream);
+      RB.rect(x + 1, y + 27, 7, 1, OL);
+      RB.rect(x + 3, y + 33, 8, 2, m.deep);
+      RB.rect(x + 14, y + 18, 4, 2, m.side);          // mirror arm
+      RB.rect(x + 12, y + 15, 3, 5, P.s2);            // mirror
       RB.rect(x + VAN_LEN - 2, y + 26, 2, 6, P.red2);
 
       function arch(cx, cy, r) {
