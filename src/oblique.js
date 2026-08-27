@@ -22,26 +22,41 @@
   OB.mat = function (base) {
     if (cache[base]) return cache[base];
     cache[base] = {
-      edge:  RB.shade(base, 0.42),
-      top:   RB.shade(base, 0.24),
+      edge:  RB.shade(base, 0.46),
+      top:   RB.shade(base, 0.30),
       front: base,
-      side:  RB.shade(base, -0.30),
-      deep:  RB.shade(base, -0.52)
+      side:  RB.shade(base, -0.38),
+      deep:  RB.shade(base, -0.60)
     };
     return cache[base];
   };
 
   // ------------------------------------------------------------------ box
   // d is the shear in pixels: how far up-right the top face reaches.
-  OB.box = function (x, y, w, h, d, base) {
+  OB.box = function (x, y, w, h, d, base, bare) {
     var m = OB.mat(base), o;
     for (o = d; o >= 1; o--) RB.wrect(x + o, y - o, w, 1, m.top);
     for (o = d; o >= 1; o--) RB.wrect(x + w - 1 + o, y - o, 1, h, m.side);
     RB.wrect(x, y, w, h, m.front);
     RB.wrect(x, y, w, 1, m.edge);
-    RB.wrect(x, y + h - 1, w, 1, m.deep);
     RB.wrect(x + w - 1, y, 1, h, m.side);
+    if (!bare) OB.outline(x, y, w, h, d);
     return m;
+  };
+
+  // Trace the silhouette of a sheared box: down the left of the front face,
+  // along its bottom, up the two diagonals, and across the back of the top.
+  OB.outline = function (x, y, w, h, d) {
+    var OL = RB.P.outline, o;
+    RB.wrect(x - 1, y, 1, h + 1, OL);                    // front left
+    RB.wrect(x - 1, y + h, w + 1, 1, OL);                // front bottom
+    for (o = 0; o <= d; o++) {
+      RB.wrect(x + o - 1, y - o, 1, 1, OL);              // top-face left diagonal
+      RB.wrect(x + w + o, y - o + h, 1, 1, OL);          // side-face bottom diagonal
+      RB.wrect(x + w + o, y - o, 1, 1, OL);              // side-face top diagonal
+    }
+    RB.wrect(x + d, y - d - 1, w, 1, OL);                // back of the top face
+    RB.wrect(x + w + d, y - d, 1, h + 1, OL);            // far right
   };
 
   // A flat panel lying on the ground (a rug, a painted marking, a light pool).

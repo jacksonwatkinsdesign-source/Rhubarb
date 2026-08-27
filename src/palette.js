@@ -1,59 +1,53 @@
 // palette.js — the whole game's colour vocabulary, defined once.
 //
-// Nothing anywhere else may invent a colour. The cosiness of Ihatovo or the
-// Battle Network overworld comes from a small, strictly-kept set: a handful
-// of ramps, each with a fixed number of steps, reused everywhere. Variation
-// comes from which ramp a thing uses, never from a new hex.
+// Pitched at the Battle Network 3/4 overworld: saturated, high contrast, few
+// tones per surface but the tones sit far apart, and a hard dark outline on
+// everything. Night in a game like that is not murky — it is a deep saturated
+// blue with bright warm windows punched into it. Muddy midtones are the enemy.
 (function (RB) {
   'use strict';
 
-  // Five-step neutral ramp, biased slightly violet — a terminal before dawn.
-  var N = {
-    ink:  '#16151e',
-    sh:   '#232231',
-    s1:   '#363449',
-    s2:   '#4a4762',
-    s3:   '#615d7c',
-    s4:   '#7d7898',
-    s5:   '#9d98b4',
-    pale: '#c2bed2',
-    white:'#edebf3'
+  var P = {
+    // The outline. One colour, on every object, no exceptions — this is the
+    // single strongest signal of the style.
+    outline: '#0d1024',
+
+    // Neutral ramp, blue-biased and saturated rather than grey.
+    ink:  '#141a38',
+    sh:   '#1e2850',
+    s1:   '#2c3a6e',
+    s2:   '#3f5192',
+    s3:   '#5468b0',
+    s4:   '#7286c8',
+    s5:   '#9aabde',
+    pale: '#c4d0f0',
+    white:'#f2f6ff',
+
+    // Warm ramp — sodium light, wood, anything the building uses to look
+    // welcoming. Deliberately hot against all that blue.
+    w1: '#5a3218', w2: '#8a5424', w3: '#bd7c30',
+    w4: '#e8a840', w5: '#ffc860', cream: '#ffe9a8',
+
+    // Skin, four steps.
+    k1: '#7a4428', k2: '#b06a3c', k3: '#e09a5e', k4: '#ffc890',
+
+    // Accents. High chroma, three steps each, and that is the whole supply.
+    teal1: '#125a68', teal2: '#1e8fa0', teal3: '#46c4d0',
+    grn1:  '#1c6a34', grn2:  '#34a44e', grn3:  '#62d878',
+    red1:  '#8a1c30', red2:  '#cc3a48', red3:  '#f4707a',
+    gold1: '#a8620c', gold2: '#e89c18', gold3: '#ffd254',
+    blu1:  '#16306e', blu2:  '#2a58b8', blu3:  '#4a88e8', blu4: '#8ab8ff',
+    vio1:  '#3a2070', vio2:  '#6a3aa8', vio3:  '#a070e0'
   };
 
-  // Warm ramp: wood, sodium light, anything the building is trying to make
-  // feel welcoming.
-  var W = {
-    w1: '#3c2e2a', w2: '#5a4438', w3: '#7e604a',
-    w4: '#a58264', w5: '#c8a684', cream: '#ebdbbb'
-  };
-
-  // Skin, four steps, used for everyone.
-  var K = { k1: '#8a5a42', k2: '#b57d59', k3: '#dfa576', k4: '#f2c99e' };
-
-  // Accents. One ramp per hue, three steps, and that is the entire supply.
-  var A = {
-    teal1: '#2a4a56', teal2: '#3f6d7a', teal3: '#5d95a0',
-    grn1:  '#3a5a42', grn2:  '#58885c', grn3:  '#7db07f',
-    red1:  '#6c2e36', red2:  '#a24c52', red3:  '#ca7a76',
-    gold1: '#a6742c', gold2: '#d6a44e', gold3: '#f0cc82',
-    blu1:  '#24365e', blu2:  '#3a5a96', blu3:  '#5a86c6', blu4: '#8ab0e2',
-    vio1:  '#3a2c52', vio2:  '#573f6e', vio3:  '#8a6a96'
-  };
-
-  var P = {};
-  [N, W, K, A].forEach(function (group) {
-    for (var key in group) P[key] = group[key];
-  });
-
-  // Legacy names, mapped onto the ramp above. Every scene written before the
-  // palette existed keeps working, and shifts onto the new colours with it —
-  // which is the point: one file re-tunes the whole game.
+  // Legacy names, mapped on. Every scene written before the palette existed
+  // keeps working and shifts onto the new colours with it.
   var ALIAS = {
-    black: 'ink',
+    black: 'outline',
     night0: 'sh', night1: 's1', night2: 's2', night3: 's3',
     steel0: 's2', steel1: 's3', steel2: 's4', steel3: 's5',
     warm0: 'w1', warm1: 'w2', warm2: 'w3', warm3: 'w4', warm4: 'w5',
-    amber: 'gold2', gold: 'gold3', orange: 'red3', rose: 'red3',
+    amber: 'gold2', gold: 'gold3', orange: 'w4', rose: 'red3',
     violet: 'vio2', teal: 'teal2', green: 'grn2', red: 'red2',
     skin0: 'k3', skin1: 'k2', navy: 'blu1'
   };
@@ -61,14 +55,17 @@
 
   RB.P = P;
 
-  // The dawn arc, as six named states. Every sky in the game is one of these
-  // or a blend of two.
+  // Skies are three or four FLAT bands, never a smooth ramp. Banding is not a
+  // limitation being worked around here, it is the look.
   RB.SKY = {
-    night:   ['#0d0d1a', '#171a30', '#232a4a', '#33395e'],
-    predawn: ['#12132a', '#1e2448', '#3a3468', '#573f6e'],
-    civil:   ['#1a1d40', '#2e2f62', '#54417a', '#8a5878'],
-    dawn:    ['#232a52', '#413a72', '#8a5a80', '#d4836f'],
-    sunrise: ['#2e4276', '#5c5590', '#b0708a', '#f0a868'],
-    day:     ['#3d64a6', '#5f86c2', '#90b0da', '#c8dcf0']
+    night:   ['#101740', '#18265e', '#243a86', '#3352a8'],
+    predawn: ['#141a48', '#222a72', '#40348e', '#6a3f96'],
+    civil:   ['#1a2258', '#32307e', '#6a3f9a', '#b4548a'],
+    dawn:    ['#22306e', '#4a3c96', '#a8508e', '#f0806a'],
+    sunrise: ['#2a4a9e', '#5a5ec0', '#d0688e', '#ffab52'],
+    day:     ['#2a72d8', '#4a94ec', '#7ab8ff', '#bce0ff']
   };
+
+  // How many bands a sky is allowed. Flat blocking, not a gradient.
+  RB.SKY_STEPS = 4;
 })(window.RB = window.RB || {});

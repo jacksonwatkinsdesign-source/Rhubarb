@@ -72,7 +72,8 @@
   // couldn't do smooth gradients, and banding is a large part of why the
   // sky in an SNES game looks the way it does.
   RB.vgrad = function (x, y, w, h, colors, steps) {
-    steps = steps || colors.length;
+    // Flat bands. A smooth ramp is the wrong idiom for this look.
+    steps = RB.SKY_STEPS || steps || colors.length;
     var bandH = h / steps;
     for (var i = 0; i < steps; i++) {
       var t = steps === 1 ? 0 : i / (steps - 1);

@@ -27,60 +27,54 @@
 /* ==== palette.js ==== */
 // palette.js — the whole game's colour vocabulary, defined once.
 //
-// Nothing anywhere else may invent a colour. The cosiness of Ihatovo or the
-// Battle Network overworld comes from a small, strictly-kept set: a handful
-// of ramps, each with a fixed number of steps, reused everywhere. Variation
-// comes from which ramp a thing uses, never from a new hex.
+// Pitched at the Battle Network 3/4 overworld: saturated, high contrast, few
+// tones per surface but the tones sit far apart, and a hard dark outline on
+// everything. Night in a game like that is not murky — it is a deep saturated
+// blue with bright warm windows punched into it. Muddy midtones are the enemy.
 (function (RB) {
   'use strict';
 
-  // Five-step neutral ramp, biased slightly violet — a terminal before dawn.
-  var N = {
-    ink:  '#16151e',
-    sh:   '#232231',
-    s1:   '#363449',
-    s2:   '#4a4762',
-    s3:   '#615d7c',
-    s4:   '#7d7898',
-    s5:   '#9d98b4',
-    pale: '#c2bed2',
-    white:'#edebf3'
+  var P = {
+    // The outline. One colour, on every object, no exceptions — this is the
+    // single strongest signal of the style.
+    outline: '#0d1024',
+
+    // Neutral ramp, blue-biased and saturated rather than grey.
+    ink:  '#141a38',
+    sh:   '#1e2850',
+    s1:   '#2c3a6e',
+    s2:   '#3f5192',
+    s3:   '#5468b0',
+    s4:   '#7286c8',
+    s5:   '#9aabde',
+    pale: '#c4d0f0',
+    white:'#f2f6ff',
+
+    // Warm ramp — sodium light, wood, anything the building uses to look
+    // welcoming. Deliberately hot against all that blue.
+    w1: '#5a3218', w2: '#8a5424', w3: '#bd7c30',
+    w4: '#e8a840', w5: '#ffc860', cream: '#ffe9a8',
+
+    // Skin, four steps.
+    k1: '#7a4428', k2: '#b06a3c', k3: '#e09a5e', k4: '#ffc890',
+
+    // Accents. High chroma, three steps each, and that is the whole supply.
+    teal1: '#125a68', teal2: '#1e8fa0', teal3: '#46c4d0',
+    grn1:  '#1c6a34', grn2:  '#34a44e', grn3:  '#62d878',
+    red1:  '#8a1c30', red2:  '#cc3a48', red3:  '#f4707a',
+    gold1: '#a8620c', gold2: '#e89c18', gold3: '#ffd254',
+    blu1:  '#16306e', blu2:  '#2a58b8', blu3:  '#4a88e8', blu4: '#8ab8ff',
+    vio1:  '#3a2070', vio2:  '#6a3aa8', vio3:  '#a070e0'
   };
 
-  // Warm ramp: wood, sodium light, anything the building is trying to make
-  // feel welcoming.
-  var W = {
-    w1: '#3c2e2a', w2: '#5a4438', w3: '#7e604a',
-    w4: '#a58264', w5: '#c8a684', cream: '#ebdbbb'
-  };
-
-  // Skin, four steps, used for everyone.
-  var K = { k1: '#8a5a42', k2: '#b57d59', k3: '#dfa576', k4: '#f2c99e' };
-
-  // Accents. One ramp per hue, three steps, and that is the entire supply.
-  var A = {
-    teal1: '#2a4a56', teal2: '#3f6d7a', teal3: '#5d95a0',
-    grn1:  '#3a5a42', grn2:  '#58885c', grn3:  '#7db07f',
-    red1:  '#6c2e36', red2:  '#a24c52', red3:  '#ca7a76',
-    gold1: '#a6742c', gold2: '#d6a44e', gold3: '#f0cc82',
-    blu1:  '#24365e', blu2:  '#3a5a96', blu3:  '#5a86c6', blu4: '#8ab0e2',
-    vio1:  '#3a2c52', vio2:  '#573f6e', vio3:  '#8a6a96'
-  };
-
-  var P = {};
-  [N, W, K, A].forEach(function (group) {
-    for (var key in group) P[key] = group[key];
-  });
-
-  // Legacy names, mapped onto the ramp above. Every scene written before the
-  // palette existed keeps working, and shifts onto the new colours with it —
-  // which is the point: one file re-tunes the whole game.
+  // Legacy names, mapped on. Every scene written before the palette existed
+  // keeps working and shifts onto the new colours with it.
   var ALIAS = {
-    black: 'ink',
+    black: 'outline',
     night0: 'sh', night1: 's1', night2: 's2', night3: 's3',
     steel0: 's2', steel1: 's3', steel2: 's4', steel3: 's5',
     warm0: 'w1', warm1: 'w2', warm2: 'w3', warm3: 'w4', warm4: 'w5',
-    amber: 'gold2', gold: 'gold3', orange: 'red3', rose: 'red3',
+    amber: 'gold2', gold: 'gold3', orange: 'w4', rose: 'red3',
     violet: 'vio2', teal: 'teal2', green: 'grn2', red: 'red2',
     skin0: 'k3', skin1: 'k2', navy: 'blu1'
   };
@@ -88,16 +82,19 @@
 
   RB.P = P;
 
-  // The dawn arc, as six named states. Every sky in the game is one of these
-  // or a blend of two.
+  // Skies are three or four FLAT bands, never a smooth ramp. Banding is not a
+  // limitation being worked around here, it is the look.
   RB.SKY = {
-    night:   ['#0d0d1a', '#171a30', '#232a4a', '#33395e'],
-    predawn: ['#12132a', '#1e2448', '#3a3468', '#573f6e'],
-    civil:   ['#1a1d40', '#2e2f62', '#54417a', '#8a5878'],
-    dawn:    ['#232a52', '#413a72', '#8a5a80', '#d4836f'],
-    sunrise: ['#2e4276', '#5c5590', '#b0708a', '#f0a868'],
-    day:     ['#3d64a6', '#5f86c2', '#90b0da', '#c8dcf0']
+    night:   ['#101740', '#18265e', '#243a86', '#3352a8'],
+    predawn: ['#141a48', '#222a72', '#40348e', '#6a3f96'],
+    civil:   ['#1a2258', '#32307e', '#6a3f9a', '#b4548a'],
+    dawn:    ['#22306e', '#4a3c96', '#a8508e', '#f0806a'],
+    sunrise: ['#2a4a9e', '#5a5ec0', '#d0688e', '#ffab52'],
+    day:     ['#2a72d8', '#4a94ec', '#7ab8ff', '#bce0ff']
   };
+
+  // How many bands a sky is allowed. Flat blocking, not a gradient.
+  RB.SKY_STEPS = 4;
 })(window.RB = window.RB || {});
 
 /* ==== core.js ==== */
@@ -175,7 +172,8 @@
   // couldn't do smooth gradients, and banding is a large part of why the
   // sky in an SNES game looks the way it does.
   RB.vgrad = function (x, y, w, h, colors, steps) {
-    steps = steps || colors.length;
+    // Flat bands. A smooth ramp is the wrong idiom for this look.
+    steps = RB.SKY_STEPS || steps || colors.length;
     var bandH = h / steps;
     for (var i = 0; i < steps; i++) {
       var t = steps === 1 ? 0 : i / (steps - 1);
@@ -1013,7 +1011,7 @@
     var pants = o.pants || P.blu1;
     var bag = o.bag || P.w3;
     return {
-      t: o.outline || '#14121c',
+      t: o.outline || RB.P.outline,
       d: RB.shade(hair, -0.30), h: hair, H: RB.shade(hair, 0.34),
       k: skin, K: RB.shade(skin, -0.22), f: RB.shade(skin, 0.20),
       e: '#22202e', q: '#e6e2ee',
@@ -1425,26 +1423,41 @@
   OB.mat = function (base) {
     if (cache[base]) return cache[base];
     cache[base] = {
-      edge:  RB.shade(base, 0.42),
-      top:   RB.shade(base, 0.24),
+      edge:  RB.shade(base, 0.46),
+      top:   RB.shade(base, 0.30),
       front: base,
-      side:  RB.shade(base, -0.30),
-      deep:  RB.shade(base, -0.52)
+      side:  RB.shade(base, -0.38),
+      deep:  RB.shade(base, -0.60)
     };
     return cache[base];
   };
 
   // ------------------------------------------------------------------ box
   // d is the shear in pixels: how far up-right the top face reaches.
-  OB.box = function (x, y, w, h, d, base) {
+  OB.box = function (x, y, w, h, d, base, bare) {
     var m = OB.mat(base), o;
     for (o = d; o >= 1; o--) RB.wrect(x + o, y - o, w, 1, m.top);
     for (o = d; o >= 1; o--) RB.wrect(x + w - 1 + o, y - o, 1, h, m.side);
     RB.wrect(x, y, w, h, m.front);
     RB.wrect(x, y, w, 1, m.edge);
-    RB.wrect(x, y + h - 1, w, 1, m.deep);
     RB.wrect(x + w - 1, y, 1, h, m.side);
+    if (!bare) OB.outline(x, y, w, h, d);
     return m;
+  };
+
+  // Trace the silhouette of a sheared box: down the left of the front face,
+  // along its bottom, up the two diagonals, and across the back of the top.
+  OB.outline = function (x, y, w, h, d) {
+    var OL = RB.P.outline, o;
+    RB.wrect(x - 1, y, 1, h + 1, OL);                    // front left
+    RB.wrect(x - 1, y + h, w + 1, 1, OL);                // front bottom
+    for (o = 0; o <= d; o++) {
+      RB.wrect(x + o - 1, y - o, 1, 1, OL);              // top-face left diagonal
+      RB.wrect(x + w + o, y - o + h, 1, 1, OL);          // side-face bottom diagonal
+      RB.wrect(x + w + o, y - o, 1, 1, OL);              // side-face top diagonal
+    }
+    RB.wrect(x + d, y - d - 1, w, 1, OL);                // back of the top face
+    RB.wrect(x + w + d, y - d, 1, h + 1, OL);            // far right
   };
 
   // A flat panel lying on the ground (a rug, a painted marking, a light pool).
@@ -2423,25 +2436,27 @@
       RB.art.stars(0, RB.W, 2, SKY - 6, 0.9);
 
       // ---- terminal: one bay module repeated, with fittings tacked on.
-      var facade = P.s1;
+      var facade = P.s2;
       var mf = OB.mat(facade);
       RB.rect(0, SKY, RB.W, PAVE - SKY, mf.front);
       // Roofline with depth, so the building is a solid and not a backdrop.
       for (var o = 9; o >= 1; o--) RB.rect(o, SKY - o, RB.W, 1, mf.top);
+      RB.rect(9, SKY - 10, RB.W, 1, P.outline);
       RB.rect(0, SKY, RB.W, 2, mf.edge);
+      RB.rect(0, PAVE - 2, RB.W, 2, P.outline);
 
       for (var i = 0; i < BAYS.length; i++) {
         var bx = i * 22 + 2, B = BAYS[i];
         RB.rect(bx, SKY + 4, 1, PAVE - SKY - 4, mf.side);        // bay seam
         RB.rect(bx + 1, SKY + 4, 1, PAVE - SKY - 4, mf.top);
         if (bx > DOOR_X - 26 && bx < DOOR_X + 22) continue;      // leave the entrance clear
-        var c = B.lit ? RB.mix(P.w5, P.cream, B.warm) : P.sh;
+        var c = B.lit ? RB.mix(P.w5, P.cream, B.warm) : P.ink;
+        RB.rect(bx + 4, WIN_Y - 1, 14, 20, P.outline);
         RB.rect(bx + 5, WIN_Y, 12, 18, c);
-        RB.rect(bx + 5, WIN_Y, 12, 1, B.lit ? P.cream : P.s2);
-        RB.rect(bx + 5, WIN_Y + 17, 12, 1, P.ink);
         if (B.lit) {
-          RB.ctx.globalAlpha = 0.05;
-          RB.rect(bx, WIN_Y + 18, 22, CANOPY - WIN_Y - 18, P.w5);
+          RB.rect(bx + 5, WIN_Y, 12, 2, P.cream);
+          RB.ctx.globalAlpha = 0.07;
+          RB.rect(bx, WIN_Y + 19, 22, CANOPY - WIN_Y - 19, P.w5);
           RB.ctx.globalAlpha = 1;
         }
       }
@@ -2456,7 +2471,7 @@
 
       // ---- entrance: a recess with light pouring out of it
       var dTop = CANOPY + 9, dH = PAVE - dTop;
-      RB.rect(DOOR_X - 25, dTop - 2, 50, dH + 2, P.ink);
+      RB.rect(DOOR_X - 26, dTop - 3, 52, dH + 3, P.outline);
       RB.rect(DOOR_X - 22, dTop, 44, dH, RB.mix(P.cream, P.w5, 0.25));
       RB.rect(DOOR_X - 22, dTop, 44, 2, '#fff4d8');
       RB.rect(DOOR_X - 1, dTop, 2, dH, P.w3);
@@ -2472,10 +2487,10 @@
       RB.ctx.globalAlpha = 1;
 
       // ---- pavement, kerb, road
-      OB.floor(0, RB.W, PAVE, KERB, P.s2);
-      OB.box(0, KERB, RB.W, 6, 4, P.s3);
-      RB.rect(0, ROAD, RB.W, RB.H - ROAD, P.sh);
-      RB.rect(0, ROAD, RB.W, 1, P.s1);
+      OB.floor(0, RB.W, PAVE, KERB, P.s3);
+      OB.box(0, KERB, RB.W, 6, 4, P.s4);
+      RB.rect(0, ROAD, RB.W, RB.H - ROAD, P.ink);
+      RB.rect(0, ROAD, RB.W, 1, P.outline);
       for (var rx = 0; rx < RB.W; rx += 44) RB.rect(rx, RB.H - 22, 20, 2, P.s1);
 
       // ---- actors, then the van in front of them

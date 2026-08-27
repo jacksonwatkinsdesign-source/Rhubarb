@@ -147,25 +147,27 @@
       RB.art.stars(0, RB.W, 2, SKY - 6, 0.9);
 
       // ---- terminal: one bay module repeated, with fittings tacked on.
-      var facade = P.s1;
+      var facade = P.s2;
       var mf = OB.mat(facade);
       RB.rect(0, SKY, RB.W, PAVE - SKY, mf.front);
       // Roofline with depth, so the building is a solid and not a backdrop.
       for (var o = 9; o >= 1; o--) RB.rect(o, SKY - o, RB.W, 1, mf.top);
+      RB.rect(9, SKY - 10, RB.W, 1, P.outline);
       RB.rect(0, SKY, RB.W, 2, mf.edge);
+      RB.rect(0, PAVE - 2, RB.W, 2, P.outline);
 
       for (var i = 0; i < BAYS.length; i++) {
         var bx = i * 22 + 2, B = BAYS[i];
         RB.rect(bx, SKY + 4, 1, PAVE - SKY - 4, mf.side);        // bay seam
         RB.rect(bx + 1, SKY + 4, 1, PAVE - SKY - 4, mf.top);
         if (bx > DOOR_X - 26 && bx < DOOR_X + 22) continue;      // leave the entrance clear
-        var c = B.lit ? RB.mix(P.w5, P.cream, B.warm) : P.sh;
+        var c = B.lit ? RB.mix(P.w5, P.cream, B.warm) : P.ink;
+        RB.rect(bx + 4, WIN_Y - 1, 14, 20, P.outline);
         RB.rect(bx + 5, WIN_Y, 12, 18, c);
-        RB.rect(bx + 5, WIN_Y, 12, 1, B.lit ? P.cream : P.s2);
-        RB.rect(bx + 5, WIN_Y + 17, 12, 1, P.ink);
         if (B.lit) {
-          RB.ctx.globalAlpha = 0.05;
-          RB.rect(bx, WIN_Y + 18, 22, CANOPY - WIN_Y - 18, P.w5);
+          RB.rect(bx + 5, WIN_Y, 12, 2, P.cream);
+          RB.ctx.globalAlpha = 0.07;
+          RB.rect(bx, WIN_Y + 19, 22, CANOPY - WIN_Y - 19, P.w5);
           RB.ctx.globalAlpha = 1;
         }
       }
@@ -180,7 +182,7 @@
 
       // ---- entrance: a recess with light pouring out of it
       var dTop = CANOPY + 9, dH = PAVE - dTop;
-      RB.rect(DOOR_X - 25, dTop - 2, 50, dH + 2, P.ink);
+      RB.rect(DOOR_X - 26, dTop - 3, 52, dH + 3, P.outline);
       RB.rect(DOOR_X - 22, dTop, 44, dH, RB.mix(P.cream, P.w5, 0.25));
       RB.rect(DOOR_X - 22, dTop, 44, 2, '#fff4d8');
       RB.rect(DOOR_X - 1, dTop, 2, dH, P.w3);
@@ -196,10 +198,10 @@
       RB.ctx.globalAlpha = 1;
 
       // ---- pavement, kerb, road
-      OB.floor(0, RB.W, PAVE, KERB, P.s2);
-      OB.box(0, KERB, RB.W, 6, 4, P.s3);
-      RB.rect(0, ROAD, RB.W, RB.H - ROAD, P.sh);
-      RB.rect(0, ROAD, RB.W, 1, P.s1);
+      OB.floor(0, RB.W, PAVE, KERB, P.s3);
+      OB.box(0, KERB, RB.W, 6, 4, P.s4);
+      RB.rect(0, ROAD, RB.W, RB.H - ROAD, P.ink);
+      RB.rect(0, ROAD, RB.W, 1, P.outline);
       for (var rx = 0; rx < RB.W; rx += 44) RB.rect(rx, RB.H - 22, 20, 2, P.s1);
 
       // ---- actors, then the van in front of them

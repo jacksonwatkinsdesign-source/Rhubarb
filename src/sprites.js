@@ -267,7 +267,7 @@
     var pants = o.pants || P.blu1;
     var bag = o.bag || P.w3;
     return {
-      t: o.outline || '#14121c',
+      t: o.outline || RB.P.outline,
       d: RB.shade(hair, -0.30), h: hair, H: RB.shade(hair, 0.34),
       k: skin, K: RB.shade(skin, -0.22), f: RB.shade(skin, 0.20),
       e: '#22202e', q: '#e6e2ee',
