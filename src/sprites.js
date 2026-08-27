@@ -31,154 +31,154 @@
   function S(rows) { return rows.map(R); }
 
   // ------------------------------------------------------------------ down
-  // Half the sprite is head. That is not a mistake — the expressiveness of a
-  // Battle Network overworld sprite comes from a big rounded skull with big
-  // eyes in it, and a small tidy body underneath. Eyes are three rows tall
-  // with a highlight, which is the single thing that makes a face read.
+  // Twelve pixels across the skull, ten across the body. The previous pass
+  // was sixteen and fourteen, which is genuinely fat next to the real thing —
+  // a Pokemon or Battle Network overworld sprite is narrow for its height,
+  // and the slimness is most of what stops it reading as a block.
   var HEAD_DOWN = [
-    '6. 8t 6.',
-    '4. 2t 8d 2t 4.',
-    '3. 1t 12d 1t 3.',
-    '2. 1t 14d 1t 2.',
-    '2. 1t 2d 4H 2d 4H 2d 1t 2.',
-    '2. 1t 1h 3d 8k 2h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 2k 3e 2k 3e 2k 1h 1t 2.',
-    '2. 1t 1h 2k 1q 2e 2k 2e 1q 2k 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 2f 4k 2K 2k 2f 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '3. 1t 12k 1t 3.',
-    '4. 2t 8K 2t 4.'
+    '7. 6t 7.',
+    '5. 2t 6d 2t 5.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 1d 3H 2d 3H 1d 1t 4.',
+    '4. 1t 1h 2d 6k 1h 1t 4.',
+    '4. 1t 1h 8k 1h 1t 4.',
+    '4. 1t 1h 8k 1h 1t 4.',
+    '4. 1t 1h 1k 2e 2k 2e 1k 1h 1t 4.',
+    '4. 1t 1h 1k 1q 1e 2k 1e 1q 1k 1h 1t 4.',
+    '4. 1t 1h 8k 1h 1t 4.',
+    '4. 1t 1h 1f 2k 2K 2k 1f 1h 1t 4.',
+    '4. 1t 10k 1t 4.',
+    '5. 1t 8k 1t 5.',
+    '6. 1t 6K 1t 6.'
   ];
   var TORSO_DOWN = [
-    '4. 1t 1L 3s 2w 3s 1S 1t 4.',
-    '3. 1t 1L 3s 1w 2c 1w 3s 1S 1t 3.',
-    '2. 1t 1L 5s 2c 5s 1S 1t 2.',
-    '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1L 12s 1S 1t 2.',
-    '3. 1t 12s 1t 3.',
-    '3. 1t 12s 1t 3.'
+    '5. 1t 1L 2s 2w 2s 1S 1t 5.',
+    '4. 1t 1L 2s 1w 2c 1w 2s 1S 1t 4.',
+    '4. 1t 1L 3s 2c 3s 1S 1t 4.',
+    '3. 1t 1k 1L 3s 2c 3s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 3s 2c 3s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '4. 1t 1L 8s 1S 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.'
   ];
   var LEGS_IDLE = [
-    '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
-    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
-    '3. 1t 5P 2t 5P 1t 3.',
-    '3. 1t 5o 2t 5o 1t 3.',
-    '3. 1t 1O 4o 2t 1O 4o 1t 3.',
-    '3. 6t 2. 6t 3.'
+    '4. 1t 4p 2t 4p 1t 4.',
+    '4. 1t 1A 2p 1P 2t 1A 2p 1P 1t 4.',
+    '4. 1t 1A 2p 1P 2t 1A 2p 1P 1t 4.',
+    '4. 1t 4P 2t 4P 1t 4.',
+    '4. 1t 4o 2t 4o 1t 4.',
+    '4. 1t 1O 3o 2t 1O 3o 1t 4.',
+    '4. 5t 2. 5t 4.'
   ];
   var LEGS_A = [
-    '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
-    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
-    '3. 1t 6P 2t 4P 1t 3.',
-    '3. 1t 6o 2t 4o 1t 3.',
-    '3. 1t 1O 5o 2t 1O 3o 1t 3.',
-    '3. 7t 2. 5t 3.'
+    '4. 1t 4p 2t 4p 1t 4.',
+    '4. 1t 1A 4p 2t 1A 2p 1t 4.',
+    '4. 1t 1A 4p 2t 1A 2p 1t 4.',
+    '4. 1t 5P 2t 3P 1t 4.',
+    '4. 1t 5o 2t 3o 1t 4.',
+    '4. 1t 1O 4o 2t 1O 2o 1t 4.',
+    '4. 6t 2. 4t 4.'
   ];
   var LEGS_B = [
-    '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
-    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
-    '3. 1t 4P 2t 6P 1t 3.',
-    '3. 1t 4o 2t 6o 1t 3.',
-    '3. 1t 1O 3o 2t 1O 5o 1t 3.',
-    '3. 5t 2. 7t 3.'
+    '4. 1t 4p 2t 4p 1t 4.',
+    '4. 1t 1A 2p 2t 1A 4p 1t 4.',
+    '4. 1t 1A 2p 2t 1A 4p 1t 4.',
+    '4. 1t 3P 2t 5P 1t 4.',
+    '4. 1t 3o 2t 5o 1t 4.',
+    '4. 1t 1O 2o 2t 1O 4o 1t 4.',
+    '4. 4t 2. 6t 4.'
   ];
 
   // -------------------------------------------------------------------- up
   var HEAD_UP = [
-    '6. 8t 6.',
-    '4. 2t 8d 2t 4.',
-    '3. 1t 12d 1t 3.',
-    '2. 1t 2d 4H 2d 4H 2d 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 2h 10d 2h 1t 2.',
-    '2. 1t 14d 1t 2.',
-    '2. 1t 14d 1t 2.',
-    '3. 1t 12d 1t 3.',
-    '4. 1t 10K 1t 4.'
+    '7. 6t 7.',
+    '5. 2t 6d 2t 5.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 1d 3H 2d 3H 1d 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10d 1t 4.',
+    '5. 1t 8d 1t 5.',
+    '6. 1t 6K 1t 6.'
   ];
   var TORSO_UP = [
+    '5. 1t 1L 6s 1S 1t 5.',
     '4. 1t 1L 8s 1S 1t 4.',
-    '3. 1t 1L 10s 1S 1t 3.',
-    '2. 1t 1L 12s 1S 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1L 12s 1S 1t 2.',
-    '3. 1t 12s 1t 3.',
-    '3. 1t 12s 1t 3.'
+    '4. 1t 1L 8s 1S 1t 4.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '4. 1t 1L 8s 1S 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.'
   ];
 
   // ------------------------------------------------------------------ side
   var HEAD_SIDE = [
-    '5. 8t 7.',
-    '3. 2t 8d 2t 5.',
-    '2. 1t 12d 1t 4.',
-    '1. 1t 14d 1t 3.',
-    '1. 1t 2d 6H 4d 2k 1t 3.',
-    '1. 1t 9h 5k 1t 3.',
-    '1. 1t 7h 7k 1t 3.',
-    '1. 1t 6h 8k 1t 3.',
-    '1. 1t 5h 9k 1t 3.',
-    '1. 1t 5h 2k 3e 4k 1t 3.',
-    '1. 1t 5h 2k 1q 2e 4k 1t 3.',
-    '1. 1t 5h 9k 1t 3.',
-    '1. 1t 4h 2f 3k 2K 3k 1t 3.',
-    '2. 1t 13k 1t 3.',
-    '3. 1t 11k 1t 4.',
-    '4. 2t 7K 2t 5.'
+    '6. 6t 8.',
+    '4. 2t 6d 2t 6.',
+    '3. 1t 10d 1t 5.',
+    '3. 1t 10d 1t 5.',
+    '3. 1t 1d 4H 3d 2k 1t 5.',
+    '3. 1t 6h 4k 1t 5.',
+    '3. 1t 5h 5k 1t 5.',
+    '3. 1t 4h 6k 1t 5.',
+    '3. 1t 4h 1k 2e 3k 1t 5.',
+    '3. 1t 4h 1k 1q 1e 3k 1t 5.',
+    '3. 1t 4h 6k 1t 5.',
+    '3. 1t 3h 1f 2k 2K 2k 1t 5.',
+    '3. 1t 10k 1t 5.',
+    '4. 1t 8k 1t 6.',
+    '5. 1t 6K 1t 7.'
   ];
   var TORSO_SIDE = [
-    '4. 1t 1L 6s 2w 1S 1t 4.',
-    '3. 1t 1L 8s 1c 1S 1t 4.',
-    '3. 1t 1L 9s 1S 1t 4.',
-    '3. 1t 1L 9s 1S 1t 1k 3.',
-    '3. 1t 1L 9s 1S 1t 1k 3.',
-    '3. 1t 1L 9s 1S 1t 4.',
-    '3. 1t 11s 1t 4.',
-    '3. 1t 11s 1t 4.',
-    '3. 1t 11s 1t 4.'
+    '5. 1t 1L 4s 2w 1S 1t 5.',
+    '4. 1t 1L 6s 1c 1S 1t 5.',
+    '4. 1t 1L 7s 1S 1t 5.',
+    '4. 1t 1L 7s 1S 1t 1k 4.',
+    '4. 1t 1L 7s 1S 1t 1k 4.',
+    '4. 1t 1L 7s 1S 1t 5.',
+    '4. 1t 9s 1t 5.',
+    '4. 1t 9s 1t 5.',
+    '4. 1t 9s 1t 5.',
+    '4. 1t 9s 1t 5.'
   ];
   var SIDE_LEGS_IDLE = [
-    '3. 1t 11p 1t 4.',
-    '3. 1t 1A 9p 1P 1t 4.',
-    '3. 1t 1A 9p 1P 1t 4.',
-    '3. 1t 11P 1t 4.',
-    '3. 1t 11o 1t 4.',
-    '3. 1t 1O 10o 1t 4.',
-    '3. 13t 4.'
-  ];
-  var SIDE_LEGS_A = [
-    '3. 1t 11p 1t 4.',
-    '2. 1t 1A 6p 2t 1A 2p 1t 4.',
-    '2. 1t 1A 6p 2t 1A 2p 1t 4.',
-    '2. 1t 7P 2t 3P 1t 4.',
-    '2. 1t 7o 2t 3o 1t 4.',
-    '2. 1t 1O 6o 2t 1O 2o 1t 4.',
-    '2. 7t 2. 4t 5.'
-  ];
-  var SIDE_LEGS_B = [
-    '3. 1t 11p 1t 4.',
     '4. 1t 9p 1t 5.',
-    '4. 1t 9p 1t 5.',
+    '4. 1t 1A 7p 1P 1t 5.',
+    '4. 1t 1A 7p 1P 1t 5.',
     '4. 1t 9P 1t 5.',
     '4. 1t 9o 1t 5.',
     '4. 1t 1O 8o 1t 5.',
     '4. 11t 5.'
+  ];
+  var SIDE_LEGS_A = [
+    '4. 1t 9p 1t 5.',
+    '3. 1t 1A 4p 2t 1A 1p 1t 6.',
+    '3. 1t 1A 4p 2t 1A 1p 1t 6.',
+    '3. 1t 5P 2t 2P 1t 6.',
+    '3. 1t 5o 2t 2o 1t 6.',
+    '3. 1t 1O 4o 2t 1O 1o 1t 6.',
+    '3. 6t 2. 3t 6.'
+  ];
+  var SIDE_LEGS_B = [
+    '4. 1t 9p 1t 5.',
+    '5. 1t 7p 1t 6.',
+    '5. 1t 7p 1t 6.',
+    '5. 1t 7P 1t 6.',
+    '5. 1t 7o 1t 6.',
+    '5. 1t 1O 6o 1t 6.',
+    '5. 9t 6.'
   ];
 
   var DOWN = {
@@ -242,14 +242,14 @@
     return ['20.', '20.'].map(R).concat(rows.slice(0, 25)).concat(S(legs));
   }
   var SIT_D = seat(DOWN[0], [
-    '3. 1t 12p 1t 3.', '3. 1t 1A 10p 1P 1t 3.',
-    '3. 1t 12P 1t 3.', '3. 1t 4o 4t 4o 1t 3.',
-    '3. 5t 4. 5t 3.'
+    '4. 1t 10p 1t 4.', '4. 1t 1A 8p 1P 1t 4.',
+    '4. 1t 10P 1t 4.', '4. 1t 3o 4t 3o 1t 4.',
+    '4. 4t 4. 4t 4.'
   ]);
   var SIT_S = seat(SIDE[0], [
-    '3. 1t 12p 1t 3.', '3. 1t 1A 11p 1t 3.',
-    '3. 1t 12P 1t 3.', '3. 1t 10o 1t 5.',
-    '3. 9t 8.'
+    '4. 1t 10p 1t 4.', '4. 1t 1A 9p 1t 4.',
+    '4. 1t 10P 1t 4.', '4. 1t 8o 1t 6.',
+    '4. 8t 8.'
   ]);
   check('sitDown', SIT_D, W); check('sitSide', SIT_S, W);
 

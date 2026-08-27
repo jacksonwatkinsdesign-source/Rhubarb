@@ -267,59 +267,136 @@
       if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, WIN_Y - 22, 'A  enter');
     };
 
-    // The van, in oblique: side face true, roof sheared up-right, nose to the
-    // left because that is the way it both arrives and leaves.
+    // The van. Built from a profile rather than from rectangles: the roof is
+    // a function of how far along the body you are, so the bonnet sits low,
+    // the windscreen actually rakes up to the cabin, and the tail is square.
+    // Drawn as a box it read as a box with windows painted on it.
+    var VAN_LEN = 92, VAN_DEP = 11;
+
+    function roofAt(dx) {
+      if (dx < 3) return 26;                      // rounded nose tip
+      if (dx < 13) return 22;                     // bonnet
+      if (dx < 25) return 22 - (dx - 13) * 1.5;   // windscreen rake
+      if (dx > VAN_LEN - 3) return 6;             // tail corner
+      return 4;                                   // cabin roof
+    }
+    function sillAt(dx) {
+      if (dx < 3) return 34;
+      if (dx > VAN_LEN - 3) return 36;
+      return 38;
+    }
+
     function drawVan(v, open) {
       var P = RB.P, OB = RB.ob;
-      var x = Math.round(v.x), y = Math.round(v.y);
-      if (x > RB.W + 120 || x < -130) return;
+      var x = Math.round(v.x), y = Math.round(v.y), dx, o, ry;
+      if (x > RB.W + 140 || x < -150) return;
 
       var body = P.blu2, m = OB.mat(body);
       var glass = P.blu1, gm = OB.mat(glass);
+      var OL = P.outline;
 
       RB.ctx.fillStyle = 'rgba(0,0,0,0.34)';
-      RB.ctx.fillRect(x + 2, y + 42, 88, 5);
+      RB.ctx.fillRect(x + 4, y + 42, 84, 5);
       RB.ctx.globalAlpha = 0.09;
-      OB.slab(x - 60, y + 34, 62, 16, P.w5);
+      OB.slab(x - 62, y + 32, 64, 16, P.w5);
       RB.ctx.globalAlpha = 1;
 
-      OB.box(x + 2, y + 16, 14, 22, 7, RB.shade(body, -0.16));   // bonnet
-      OB.box(x + 10, y + 2, 78, 36, 10, body);                   // body
+      // Roof, sheared up and to the right, following the profile.
+      for (o = VAN_DEP; o >= 1; o--) {
+        for (dx = 0; dx < VAN_LEN; dx++) {
+          RB.rect(x + dx + o, y + roofAt(dx) - o, 1, 1, m.top);
+        }
+      }
+      // Tail face, also sheared.
+      for (o = VAN_DEP; o >= 1; o--) {
+        RB.rect(x + VAN_LEN - 1 + o, y + roofAt(VAN_LEN - 1) - o, 1,
+                sillAt(VAN_LEN - 1) - roofAt(VAN_LEN - 1), m.side);
+      }
+      // Body sides, column by column.
+      for (dx = 0; dx < VAN_LEN; dx++) {
+        ry = y + roofAt(dx);
+        RB.rect(x + dx, ry, 1, sillAt(dx) - roofAt(dx), m.front);
+        RB.rect(x + dx, ry, 1, 1, m.edge);
+        RB.rect(x + dx, y + roofAt(dx) - VAN_DEP - 1 + OB.off(0), 1, 1, OL);
+      }
+      // Silhouette: roofline, nose, sill.
+      for (dx = 0; dx < VAN_LEN; dx++) {
+        RB.rect(x + dx + VAN_DEP, y + roofAt(dx) - VAN_DEP - 1, 1, 1, OL);
+        if (dx === 0 || roofAt(dx) !== roofAt(dx - 1)) {
+          RB.rect(x + dx - 1, y + roofAt(dx), 1, Math.abs(roofAt(dx) - roofAt(dx - 1)) + 1, OL);
+        }
+      }
+      RB.rect(x - 1, y + 26, 1, 10, OL);
+      RB.rect(x - 1, y + sillAt(10), VAN_LEN + VAN_DEP + 2, 1, OL);
 
-      // Glazing, one module repeated.
-      RB.rect(x + 14, y + 7, 16, 13, gm.front);
-      RB.rect(x + 14, y + 7, 16, 1, gm.top);
-      [34, 54, 70].forEach(function (gx) {
-        RB.rect(x + gx, y + 7, 15, 13, gm.front);
-        RB.rect(x + gx, y + 7, 15, 1, gm.top);
+      // Glazing: the windscreen follows the rake, the side lights are square.
+      for (dx = 15; dx < 25; dx++) {
+        var wt = y + roofAt(dx) + 3;
+        RB.rect(x + dx, wt, 1, 18 - (dx - 15), gm.front);
+        RB.rect(x + dx, wt, 1, 1, gm.top);
+      }
+      [30, 50, 68].forEach(function (gx) {
+        RB.rect(gx + x, y + 7, 16, 13, gm.front);
+        RB.rect(gx + x, y + 7, 16, 1, gm.top);
+        RB.rect(gx + x - 1, y + 6, 18, 1, OL);
+        RB.rect(gx + x - 1, y + 20, 18, 1, OL);
       });
-      RB.rect(x + 10, y + 22, 78, 1, m.edge);
-      RB.rect(x + 10, y + 23, 78, 1, m.side);
+
+      // Waist crease and sill kick, which is what makes a flat flank read as
+      // pressed metal.
+      RB.rect(x + 13, y + 24, VAN_LEN - 16, 1, m.edge);
+      RB.rect(x + 13, y + 25, VAN_LEN - 16, 1, m.side);
+      RB.rect(x + 6, y + 34, VAN_LEN - 8, 1, m.deep);
+
+      // Door shuts.
+      RB.rect(x + 28, y + 6, 1, 28, m.deep);
+      RB.rect(x + 47, y + 6, 1, 28, m.deep);
 
       if (open > 0.02) {
-        var ow = Math.round(open * 19);
-        RB.rect(x + 32, y + 5, ow, 32, P.ink);
+        var ow = Math.round(open * 18);
+        RB.rect(x + 29, y + 6, ow, 28, P.ink);
         if (ow > 3) {
-          RB.rect(x + 33, y + 6, ow - 2, 2, P.w5);
-          RB.rect(x + 33, y + 8, ow - 2, 5, P.w2);
-          RB.rect(x + 34, y + 15, ow - 4, 16, P.s1);
-          RB.rect(x + 33, y + 32, ow - 2, 4, P.w2);
+          RB.rect(x + 30, y + 7, ow - 2, 2, P.w5);
+          RB.rect(x + 30, y + 9, ow - 2, 5, P.w2);
+          RB.rect(x + 31, y + 16, ow - 4, 14, P.s1);
+          RB.rect(x + 30, y + 31, ow - 2, 3, P.w2);
         }
-        RB.rect(x + 32 + ow, y + 4, 2, 34, m.deep);
+        RB.rect(x + 29 + ow, y + 5, 2, 30, OL);
         RB.ctx.globalAlpha = 0.14 * open;
-        OB.slab(x + 22, y + 40, 40, 16, P.w5);
+        OB.slab(x + 20, y + 38, 40, 16, P.w5);
         RB.ctx.globalAlpha = 1;
       }
 
+      // Wheel arches cut into the flank, then the wheels sitting in them.
+      arch(x + 24, y + 38, 10);
+      arch(x + 74, y + 38, 10);
       wheel(x + 24, y + 38, 8);
       wheel(x + 74, y + 38, 8);
-      RB.rect(x + 1, y + 22, 5, 6, P.cream);       // headlamp
-      RB.rect(x + 88, y + 22, 2, 6, P.red2);       // tail
 
+      // Lamps, grille, mirror, bumper.
+      RB.rect(x + 1, y + 27, 5, 5, P.cream);
+      RB.rect(x, y + 26, 7, 1, OL);
+      RB.rect(x + 2, y + 33, 8, 2, m.deep);
+      RB.rect(x + 12, y + 18, 4, 2, m.side);          // mirror arm
+      RB.rect(x + 10, y + 15, 3, 5, P.s2);            // mirror
+      RB.rect(x + VAN_LEN - 2, y + 26, 2, 6, P.red2);
+
+      function arch(cx, cy, r) {
+        for (var dy = -r; dy <= 0; dy++) {
+          var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
+          if (half > 0) RB.rect(cx - half, cy + dy, half * 2, 1, RB.shade(body, -0.55));
+        }
+        for (var i = 0; i <= r; i++) {
+          var hh = Math.floor(Math.sqrt(Math.max(0, r * r - i * i)));
+          RB.rect(cx - i, cy - hh, 1, 1, OL);
+          RB.rect(cx + i, cy - hh, 1, 1, OL);
+        }
+      }
       function wheel(cx, cy, r) {
-        disc(cx, cy, r, P.ink);
-        disc(cx, cy, r - 3, P.s2);
-        disc(cx, cy, r - 5, P.s1);
+        disc(cx, cy, r, OL);
+        disc(cx, cy, r - 1, '#1a1c30');
+        disc(cx, cy, r - 4, P.s2);
+        disc(cx, cy, r - 6, P.s1);
       }
       function disc(cx, cy, r, c) {
         if (r <= 0) return;

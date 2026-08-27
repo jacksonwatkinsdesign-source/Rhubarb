@@ -775,154 +775,154 @@
   function S(rows) { return rows.map(R); }
 
   // ------------------------------------------------------------------ down
-  // Half the sprite is head. That is not a mistake — the expressiveness of a
-  // Battle Network overworld sprite comes from a big rounded skull with big
-  // eyes in it, and a small tidy body underneath. Eyes are three rows tall
-  // with a highlight, which is the single thing that makes a face read.
+  // Twelve pixels across the skull, ten across the body. The previous pass
+  // was sixteen and fourteen, which is genuinely fat next to the real thing —
+  // a Pokemon or Battle Network overworld sprite is narrow for its height,
+  // and the slimness is most of what stops it reading as a block.
   var HEAD_DOWN = [
-    '6. 8t 6.',
-    '4. 2t 8d 2t 4.',
-    '3. 1t 12d 1t 3.',
-    '2. 1t 14d 1t 2.',
-    '2. 1t 2d 4H 2d 4H 2d 1t 2.',
-    '2. 1t 1h 3d 8k 2h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 2k 3e 2k 3e 2k 1h 1t 2.',
-    '2. 1t 1h 2k 1q 2e 2k 2e 1q 2k 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '2. 1t 1h 2f 4k 2K 2k 2f 1h 1t 2.',
-    '2. 1t 1h 12k 1h 1t 2.',
-    '3. 1t 12k 1t 3.',
-    '4. 2t 8K 2t 4.'
+    '7. 6t 7.',
+    '5. 2t 6d 2t 5.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 1d 3H 2d 3H 1d 1t 4.',
+    '4. 1t 1h 2d 6k 1h 1t 4.',
+    '4. 1t 1h 8k 1h 1t 4.',
+    '4. 1t 1h 8k 1h 1t 4.',
+    '4. 1t 1h 1k 2e 2k 2e 1k 1h 1t 4.',
+    '4. 1t 1h 1k 1q 1e 2k 1e 1q 1k 1h 1t 4.',
+    '4. 1t 1h 8k 1h 1t 4.',
+    '4. 1t 1h 1f 2k 2K 2k 1f 1h 1t 4.',
+    '4. 1t 10k 1t 4.',
+    '5. 1t 8k 1t 5.',
+    '6. 1t 6K 1t 6.'
   ];
   var TORSO_DOWN = [
-    '4. 1t 1L 3s 2w 3s 1S 1t 4.',
-    '3. 1t 1L 3s 1w 2c 1w 3s 1S 1t 3.',
-    '2. 1t 1L 5s 2c 5s 1S 1t 2.',
-    '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 4s 2c 4s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1L 12s 1S 1t 2.',
-    '3. 1t 12s 1t 3.',
-    '3. 1t 12s 1t 3.'
+    '5. 1t 1L 2s 2w 2s 1S 1t 5.',
+    '4. 1t 1L 2s 1w 2c 1w 2s 1S 1t 4.',
+    '4. 1t 1L 3s 2c 3s 1S 1t 4.',
+    '3. 1t 1k 1L 3s 2c 3s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 3s 2c 3s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '4. 1t 1L 8s 1S 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.'
   ];
   var LEGS_IDLE = [
-    '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
-    '3. 1t 1A 3p 1P 2t 1A 3p 1P 1t 3.',
-    '3. 1t 5P 2t 5P 1t 3.',
-    '3. 1t 5o 2t 5o 1t 3.',
-    '3. 1t 1O 4o 2t 1O 4o 1t 3.',
-    '3. 6t 2. 6t 3.'
+    '4. 1t 4p 2t 4p 1t 4.',
+    '4. 1t 1A 2p 1P 2t 1A 2p 1P 1t 4.',
+    '4. 1t 1A 2p 1P 2t 1A 2p 1P 1t 4.',
+    '4. 1t 4P 2t 4P 1t 4.',
+    '4. 1t 4o 2t 4o 1t 4.',
+    '4. 1t 1O 3o 2t 1O 3o 1t 4.',
+    '4. 5t 2. 5t 4.'
   ];
   var LEGS_A = [
-    '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
-    '3. 1t 1A 5p 2t 1A 3p 1t 3.',
-    '3. 1t 6P 2t 4P 1t 3.',
-    '3. 1t 6o 2t 4o 1t 3.',
-    '3. 1t 1O 5o 2t 1O 3o 1t 3.',
-    '3. 7t 2. 5t 3.'
+    '4. 1t 4p 2t 4p 1t 4.',
+    '4. 1t 1A 4p 2t 1A 2p 1t 4.',
+    '4. 1t 1A 4p 2t 1A 2p 1t 4.',
+    '4. 1t 5P 2t 3P 1t 4.',
+    '4. 1t 5o 2t 3o 1t 4.',
+    '4. 1t 1O 4o 2t 1O 2o 1t 4.',
+    '4. 6t 2. 4t 4.'
   ];
   var LEGS_B = [
-    '3. 1t 5p 2t 5p 1t 3.',
-    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
-    '3. 1t 1A 3p 2t 1A 5p 1t 3.',
-    '3. 1t 4P 2t 6P 1t 3.',
-    '3. 1t 4o 2t 6o 1t 3.',
-    '3. 1t 1O 3o 2t 1O 5o 1t 3.',
-    '3. 5t 2. 7t 3.'
+    '4. 1t 4p 2t 4p 1t 4.',
+    '4. 1t 1A 2p 2t 1A 4p 1t 4.',
+    '4. 1t 1A 2p 2t 1A 4p 1t 4.',
+    '4. 1t 3P 2t 5P 1t 4.',
+    '4. 1t 3o 2t 5o 1t 4.',
+    '4. 1t 1O 2o 2t 1O 4o 1t 4.',
+    '4. 4t 2. 6t 4.'
   ];
 
   // -------------------------------------------------------------------- up
   var HEAD_UP = [
-    '6. 8t 6.',
-    '4. 2t 8d 2t 4.',
-    '3. 1t 12d 1t 3.',
-    '2. 1t 2d 4H 2d 4H 2d 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 14h 1t 2.',
-    '2. 1t 2h 10d 2h 1t 2.',
-    '2. 1t 14d 1t 2.',
-    '2. 1t 14d 1t 2.',
-    '3. 1t 12d 1t 3.',
-    '4. 1t 10K 1t 4.'
+    '7. 6t 7.',
+    '5. 2t 6d 2t 5.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 10d 1t 4.',
+    '4. 1t 1d 3H 2d 3H 1d 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10h 1t 4.',
+    '4. 1t 10d 1t 4.',
+    '5. 1t 8d 1t 5.',
+    '6. 1t 6K 1t 6.'
   ];
   var TORSO_UP = [
+    '5. 1t 1L 6s 1S 1t 5.',
     '4. 1t 1L 8s 1S 1t 4.',
-    '3. 1t 1L 10s 1S 1t 3.',
-    '2. 1t 1L 12s 1S 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1k 1L 10s 1S 1K 1t 2.',
-    '2. 1t 1L 12s 1S 1t 2.',
-    '3. 1t 12s 1t 3.',
-    '3. 1t 12s 1t 3.'
+    '4. 1t 1L 8s 1S 1t 4.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '3. 1t 1k 1L 8s 1S 1k 1t 3.',
+    '4. 1t 1L 8s 1S 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.',
+    '4. 1t 10s 1t 4.'
   ];
 
   // ------------------------------------------------------------------ side
   var HEAD_SIDE = [
-    '5. 8t 7.',
-    '3. 2t 8d 2t 5.',
-    '2. 1t 12d 1t 4.',
-    '1. 1t 14d 1t 3.',
-    '1. 1t 2d 6H 4d 2k 1t 3.',
-    '1. 1t 9h 5k 1t 3.',
-    '1. 1t 7h 7k 1t 3.',
-    '1. 1t 6h 8k 1t 3.',
-    '1. 1t 5h 9k 1t 3.',
-    '1. 1t 5h 2k 3e 4k 1t 3.',
-    '1. 1t 5h 2k 1q 2e 4k 1t 3.',
-    '1. 1t 5h 9k 1t 3.',
-    '1. 1t 4h 2f 3k 2K 3k 1t 3.',
-    '2. 1t 13k 1t 3.',
-    '3. 1t 11k 1t 4.',
-    '4. 2t 7K 2t 5.'
+    '6. 6t 8.',
+    '4. 2t 6d 2t 6.',
+    '3. 1t 10d 1t 5.',
+    '3. 1t 10d 1t 5.',
+    '3. 1t 1d 4H 3d 2k 1t 5.',
+    '3. 1t 6h 4k 1t 5.',
+    '3. 1t 5h 5k 1t 5.',
+    '3. 1t 4h 6k 1t 5.',
+    '3. 1t 4h 1k 2e 3k 1t 5.',
+    '3. 1t 4h 1k 1q 1e 3k 1t 5.',
+    '3. 1t 4h 6k 1t 5.',
+    '3. 1t 3h 1f 2k 2K 2k 1t 5.',
+    '3. 1t 10k 1t 5.',
+    '4. 1t 8k 1t 6.',
+    '5. 1t 6K 1t 7.'
   ];
   var TORSO_SIDE = [
-    '4. 1t 1L 6s 2w 1S 1t 4.',
-    '3. 1t 1L 8s 1c 1S 1t 4.',
-    '3. 1t 1L 9s 1S 1t 4.',
-    '3. 1t 1L 9s 1S 1t 1k 3.',
-    '3. 1t 1L 9s 1S 1t 1k 3.',
-    '3. 1t 1L 9s 1S 1t 4.',
-    '3. 1t 11s 1t 4.',
-    '3. 1t 11s 1t 4.',
-    '3. 1t 11s 1t 4.'
+    '5. 1t 1L 4s 2w 1S 1t 5.',
+    '4. 1t 1L 6s 1c 1S 1t 5.',
+    '4. 1t 1L 7s 1S 1t 5.',
+    '4. 1t 1L 7s 1S 1t 1k 4.',
+    '4. 1t 1L 7s 1S 1t 1k 4.',
+    '4. 1t 1L 7s 1S 1t 5.',
+    '4. 1t 9s 1t 5.',
+    '4. 1t 9s 1t 5.',
+    '4. 1t 9s 1t 5.',
+    '4. 1t 9s 1t 5.'
   ];
   var SIDE_LEGS_IDLE = [
-    '3. 1t 11p 1t 4.',
-    '3. 1t 1A 9p 1P 1t 4.',
-    '3. 1t 1A 9p 1P 1t 4.',
-    '3. 1t 11P 1t 4.',
-    '3. 1t 11o 1t 4.',
-    '3. 1t 1O 10o 1t 4.',
-    '3. 13t 4.'
-  ];
-  var SIDE_LEGS_A = [
-    '3. 1t 11p 1t 4.',
-    '2. 1t 1A 6p 2t 1A 2p 1t 4.',
-    '2. 1t 1A 6p 2t 1A 2p 1t 4.',
-    '2. 1t 7P 2t 3P 1t 4.',
-    '2. 1t 7o 2t 3o 1t 4.',
-    '2. 1t 1O 6o 2t 1O 2o 1t 4.',
-    '2. 7t 2. 4t 5.'
-  ];
-  var SIDE_LEGS_B = [
-    '3. 1t 11p 1t 4.',
     '4. 1t 9p 1t 5.',
-    '4. 1t 9p 1t 5.',
+    '4. 1t 1A 7p 1P 1t 5.',
+    '4. 1t 1A 7p 1P 1t 5.',
     '4. 1t 9P 1t 5.',
     '4. 1t 9o 1t 5.',
     '4. 1t 1O 8o 1t 5.',
     '4. 11t 5.'
+  ];
+  var SIDE_LEGS_A = [
+    '4. 1t 9p 1t 5.',
+    '3. 1t 1A 4p 2t 1A 1p 1t 6.',
+    '3. 1t 1A 4p 2t 1A 1p 1t 6.',
+    '3. 1t 5P 2t 2P 1t 6.',
+    '3. 1t 5o 2t 2o 1t 6.',
+    '3. 1t 1O 4o 2t 1O 1o 1t 6.',
+    '3. 6t 2. 3t 6.'
+  ];
+  var SIDE_LEGS_B = [
+    '4. 1t 9p 1t 5.',
+    '5. 1t 7p 1t 6.',
+    '5. 1t 7p 1t 6.',
+    '5. 1t 7P 1t 6.',
+    '5. 1t 7o 1t 6.',
+    '5. 1t 1O 6o 1t 6.',
+    '5. 9t 6.'
   ];
 
   var DOWN = {
@@ -986,14 +986,14 @@
     return ['20.', '20.'].map(R).concat(rows.slice(0, 25)).concat(S(legs));
   }
   var SIT_D = seat(DOWN[0], [
-    '3. 1t 12p 1t 3.', '3. 1t 1A 10p 1P 1t 3.',
-    '3. 1t 12P 1t 3.', '3. 1t 4o 4t 4o 1t 3.',
-    '3. 5t 4. 5t 3.'
+    '4. 1t 10p 1t 4.', '4. 1t 1A 8p 1P 1t 4.',
+    '4. 1t 10P 1t 4.', '4. 1t 3o 4t 3o 1t 4.',
+    '4. 4t 4. 4t 4.'
   ]);
   var SIT_S = seat(SIDE[0], [
-    '3. 1t 12p 1t 3.', '3. 1t 1A 11p 1t 3.',
-    '3. 1t 12P 1t 3.', '3. 1t 10o 1t 5.',
-    '3. 9t 8.'
+    '4. 1t 10p 1t 4.', '4. 1t 1A 9p 1t 4.',
+    '4. 1t 10P 1t 4.', '4. 1t 8o 1t 6.',
+    '4. 8t 8.'
   ]);
   check('sitDown', SIT_D, W); check('sitSide', SIT_S, W);
 
@@ -2608,59 +2608,136 @@
       if (s.showPrompt && !RB.dialog.active()) RB.drawPrompt(DOOR_X, WIN_Y - 22, 'A  enter');
     };
 
-    // The van, in oblique: side face true, roof sheared up-right, nose to the
-    // left because that is the way it both arrives and leaves.
+    // The van. Built from a profile rather than from rectangles: the roof is
+    // a function of how far along the body you are, so the bonnet sits low,
+    // the windscreen actually rakes up to the cabin, and the tail is square.
+    // Drawn as a box it read as a box with windows painted on it.
+    var VAN_LEN = 92, VAN_DEP = 11;
+
+    function roofAt(dx) {
+      if (dx < 3) return 26;                      // rounded nose tip
+      if (dx < 13) return 22;                     // bonnet
+      if (dx < 25) return 22 - (dx - 13) * 1.5;   // windscreen rake
+      if (dx > VAN_LEN - 3) return 6;             // tail corner
+      return 4;                                   // cabin roof
+    }
+    function sillAt(dx) {
+      if (dx < 3) return 34;
+      if (dx > VAN_LEN - 3) return 36;
+      return 38;
+    }
+
     function drawVan(v, open) {
       var P = RB.P, OB = RB.ob;
-      var x = Math.round(v.x), y = Math.round(v.y);
-      if (x > RB.W + 120 || x < -130) return;
+      var x = Math.round(v.x), y = Math.round(v.y), dx, o, ry;
+      if (x > RB.W + 140 || x < -150) return;
 
       var body = P.blu2, m = OB.mat(body);
       var glass = P.blu1, gm = OB.mat(glass);
+      var OL = P.outline;
 
       RB.ctx.fillStyle = 'rgba(0,0,0,0.34)';
-      RB.ctx.fillRect(x + 2, y + 42, 88, 5);
+      RB.ctx.fillRect(x + 4, y + 42, 84, 5);
       RB.ctx.globalAlpha = 0.09;
-      OB.slab(x - 60, y + 34, 62, 16, P.w5);
+      OB.slab(x - 62, y + 32, 64, 16, P.w5);
       RB.ctx.globalAlpha = 1;
 
-      OB.box(x + 2, y + 16, 14, 22, 7, RB.shade(body, -0.16));   // bonnet
-      OB.box(x + 10, y + 2, 78, 36, 10, body);                   // body
+      // Roof, sheared up and to the right, following the profile.
+      for (o = VAN_DEP; o >= 1; o--) {
+        for (dx = 0; dx < VAN_LEN; dx++) {
+          RB.rect(x + dx + o, y + roofAt(dx) - o, 1, 1, m.top);
+        }
+      }
+      // Tail face, also sheared.
+      for (o = VAN_DEP; o >= 1; o--) {
+        RB.rect(x + VAN_LEN - 1 + o, y + roofAt(VAN_LEN - 1) - o, 1,
+                sillAt(VAN_LEN - 1) - roofAt(VAN_LEN - 1), m.side);
+      }
+      // Body sides, column by column.
+      for (dx = 0; dx < VAN_LEN; dx++) {
+        ry = y + roofAt(dx);
+        RB.rect(x + dx, ry, 1, sillAt(dx) - roofAt(dx), m.front);
+        RB.rect(x + dx, ry, 1, 1, m.edge);
+        RB.rect(x + dx, y + roofAt(dx) - VAN_DEP - 1 + OB.off(0), 1, 1, OL);
+      }
+      // Silhouette: roofline, nose, sill.
+      for (dx = 0; dx < VAN_LEN; dx++) {
+        RB.rect(x + dx + VAN_DEP, y + roofAt(dx) - VAN_DEP - 1, 1, 1, OL);
+        if (dx === 0 || roofAt(dx) !== roofAt(dx - 1)) {
+          RB.rect(x + dx - 1, y + roofAt(dx), 1, Math.abs(roofAt(dx) - roofAt(dx - 1)) + 1, OL);
+        }
+      }
+      RB.rect(x - 1, y + 26, 1, 10, OL);
+      RB.rect(x - 1, y + sillAt(10), VAN_LEN + VAN_DEP + 2, 1, OL);
 
-      // Glazing, one module repeated.
-      RB.rect(x + 14, y + 7, 16, 13, gm.front);
-      RB.rect(x + 14, y + 7, 16, 1, gm.top);
-      [34, 54, 70].forEach(function (gx) {
-        RB.rect(x + gx, y + 7, 15, 13, gm.front);
-        RB.rect(x + gx, y + 7, 15, 1, gm.top);
+      // Glazing: the windscreen follows the rake, the side lights are square.
+      for (dx = 15; dx < 25; dx++) {
+        var wt = y + roofAt(dx) + 3;
+        RB.rect(x + dx, wt, 1, 18 - (dx - 15), gm.front);
+        RB.rect(x + dx, wt, 1, 1, gm.top);
+      }
+      [30, 50, 68].forEach(function (gx) {
+        RB.rect(gx + x, y + 7, 16, 13, gm.front);
+        RB.rect(gx + x, y + 7, 16, 1, gm.top);
+        RB.rect(gx + x - 1, y + 6, 18, 1, OL);
+        RB.rect(gx + x - 1, y + 20, 18, 1, OL);
       });
-      RB.rect(x + 10, y + 22, 78, 1, m.edge);
-      RB.rect(x + 10, y + 23, 78, 1, m.side);
+
+      // Waist crease and sill kick, which is what makes a flat flank read as
+      // pressed metal.
+      RB.rect(x + 13, y + 24, VAN_LEN - 16, 1, m.edge);
+      RB.rect(x + 13, y + 25, VAN_LEN - 16, 1, m.side);
+      RB.rect(x + 6, y + 34, VAN_LEN - 8, 1, m.deep);
+
+      // Door shuts.
+      RB.rect(x + 28, y + 6, 1, 28, m.deep);
+      RB.rect(x + 47, y + 6, 1, 28, m.deep);
 
       if (open > 0.02) {
-        var ow = Math.round(open * 19);
-        RB.rect(x + 32, y + 5, ow, 32, P.ink);
+        var ow = Math.round(open * 18);
+        RB.rect(x + 29, y + 6, ow, 28, P.ink);
         if (ow > 3) {
-          RB.rect(x + 33, y + 6, ow - 2, 2, P.w5);
-          RB.rect(x + 33, y + 8, ow - 2, 5, P.w2);
-          RB.rect(x + 34, y + 15, ow - 4, 16, P.s1);
-          RB.rect(x + 33, y + 32, ow - 2, 4, P.w2);
+          RB.rect(x + 30, y + 7, ow - 2, 2, P.w5);
+          RB.rect(x + 30, y + 9, ow - 2, 5, P.w2);
+          RB.rect(x + 31, y + 16, ow - 4, 14, P.s1);
+          RB.rect(x + 30, y + 31, ow - 2, 3, P.w2);
         }
-        RB.rect(x + 32 + ow, y + 4, 2, 34, m.deep);
+        RB.rect(x + 29 + ow, y + 5, 2, 30, OL);
         RB.ctx.globalAlpha = 0.14 * open;
-        OB.slab(x + 22, y + 40, 40, 16, P.w5);
+        OB.slab(x + 20, y + 38, 40, 16, P.w5);
         RB.ctx.globalAlpha = 1;
       }
 
+      // Wheel arches cut into the flank, then the wheels sitting in them.
+      arch(x + 24, y + 38, 10);
+      arch(x + 74, y + 38, 10);
       wheel(x + 24, y + 38, 8);
       wheel(x + 74, y + 38, 8);
-      RB.rect(x + 1, y + 22, 5, 6, P.cream);       // headlamp
-      RB.rect(x + 88, y + 22, 2, 6, P.red2);       // tail
 
+      // Lamps, grille, mirror, bumper.
+      RB.rect(x + 1, y + 27, 5, 5, P.cream);
+      RB.rect(x, y + 26, 7, 1, OL);
+      RB.rect(x + 2, y + 33, 8, 2, m.deep);
+      RB.rect(x + 12, y + 18, 4, 2, m.side);          // mirror arm
+      RB.rect(x + 10, y + 15, 3, 5, P.s2);            // mirror
+      RB.rect(x + VAN_LEN - 2, y + 26, 2, 6, P.red2);
+
+      function arch(cx, cy, r) {
+        for (var dy = -r; dy <= 0; dy++) {
+          var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
+          if (half > 0) RB.rect(cx - half, cy + dy, half * 2, 1, RB.shade(body, -0.55));
+        }
+        for (var i = 0; i <= r; i++) {
+          var hh = Math.floor(Math.sqrt(Math.max(0, r * r - i * i)));
+          RB.rect(cx - i, cy - hh, 1, 1, OL);
+          RB.rect(cx + i, cy - hh, 1, 1, OL);
+        }
+      }
       function wheel(cx, cy, r) {
-        disc(cx, cy, r, P.ink);
-        disc(cx, cy, r - 3, P.s2);
-        disc(cx, cy, r - 5, P.s1);
+        disc(cx, cy, r, OL);
+        disc(cx, cy, r - 1, '#1a1c30');
+        disc(cx, cy, r - 4, P.s2);
+        disc(cx, cy, r - 6, P.s1);
       }
       function disc(cx, cy, r, c) {
         if (r <= 0) return;
