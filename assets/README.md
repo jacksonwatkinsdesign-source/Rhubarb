@@ -53,3 +53,33 @@ time to keep `dist/rhubarb.html` small.
 
 The build inlines each sheet as a data URI, so the single-file artifact keeps
 working with no external hosts.
+
+---
+
+## Generator exports (`assets/chars/`)
+
+The Universal LPC generator's "save/export" button produces a JSON file that
+already carries every layer's resolved sprite path and z-order. Drop it in
+`assets/chars/<name>.json` and run:
+
+    node tools/lpc.js assets/chars/<name>.json walk idle sit
+
+That composites the layers, applies the palette recolours, trims every frame to
+one shared box so nothing shifts between poses, and writes:
+
+    <name>.walk.png  <name>.idle.png  <name>.sit.png
+    <name>.frames.json     frame size + row order
+    <name>.CREDITS.md      attribution, which most of these licences require
+
+It needs a local checkout of the generator repo (for the sheets and palettes):
+
+    git clone --filter=blob:none --sparse --depth 1 \
+      https://github.com/LiberatedPixelCup/universal-lpc-spritesheet-character-generator \
+      ~/liberatedpixelcup/universal-lpc-spritesheet-character-generator
+
+then `git sparse-checkout add --no-cone 'sheet_definitions/**' 'palette_definitions/**'`
+plus the `spritesheets/...` paths the character uses. Point `LPC_REPO` at it if
+you keep it somewhere else. Nothing is fetched while building the game itself.
+
+Previews: `node tools/lpcsheet.js` (zoomed walk cycle),
+`node tools/lpcscale.js` (dropped into the real curb scene at 1:1).

@@ -1,0 +1,37 @@
+{
+  "name": "oldman",
+  "frameW": 38,
+  "frameH": 52,
+  "anims": {
+    "walk": {
+      "file": "oldman.walk.png",
+      "rows": [
+        "up",
+        "left",
+        "down",
+        "right"
+      ],
+      "frames": 9
+    },
+    "idle": {
+      "file": "oldman.idle.png",
+      "rows": [
+        "up",
+        "left",
+        "down",
+        "right"
+      ],
+      "frames": 2
+    },
+    "sit": {
+      "file": "oldman.sit.png",
+      "rows": [
+        "up",
+        "left",
+        "down",
+        "right"
+      ],
+      "frames": 3
+    }
+  }
+}
